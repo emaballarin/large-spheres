@@ -2,7 +2,7 @@
 
 ![alt tag](https://raw.githubusercontent.com/FireFather/BigBallz/master/bitmaps/bigballz.png)
 
-This is a **FREE** UCI-compatibile chess engine. It is a fork of [FatTitz]https://github.com/Sopel97/FatTitz which is a fork of [cfish](https://github.com/syzygy1/Cfish).
+This is a **FREE** UCI-compatibile chess engine. It is a fork of [FatTitz](https://github.com/Sopel97/FatTitz) which is a fork of [cfish](https://github.com/syzygy1/Cfish).
 
 Many thanks to Tomass Sopel for inspiration on creating this fork of FatTitz.
 
