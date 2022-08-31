@@ -40,7 +40,7 @@
 #define UNLOCK(x) pthread_mutex_unlock(&(x))
 #else
 #define LOCK_T HANDLE
-#define LOCK_INIT(x) do { x = CreateMutex(NULL, FALSE, NULL); } while (0)
+#define LOCK_INIT(x) do { (x) = CreateMutex(NULL, FALSE, NULL); } while (0)
 #define LOCK_DESTROY(x) CloseHandle(x)
 #define LOCK(x) WaitForSingleObject(x, INFINITE)
 #define UNLOCK(x) ReleaseMutex(x)
@@ -53,7 +53,7 @@ enum {
 void thread_search(Position *pos);
 void thread_wake_up(Position *pos, int action);
 void thread_wait_until_sleeping(Position *pos);
-void thread_wait(Position *pos, atomic_bool *b);
+void thread_wait(Position *pos, atomic_bool *condition);
 
 
 // MainThread struct seems to exist mostly for easy move.

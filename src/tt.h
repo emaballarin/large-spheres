@@ -26,7 +26,7 @@
 
 // TTEntry struct is the 10 bytes transposition table entry, defined as below:
 //
-// key        64 bit
+// key        16 bit
 // depth       8 bit
 // generation  5 bit
 // pv node     1 bit
@@ -36,7 +36,7 @@
 // eval value 16 bit
 
 struct TTEntry {
-  uint64_t key;
+  uint16_t key16;
   uint8_t  depth8;
   uint8_t  genBound8;
   uint16_t move16;
@@ -53,10 +53,11 @@ typedef struct TTEntry TTEntry;
 // clusters never cross cache lines. This ensures best cache performance,
 // as the cacheline is prefetched, as soon as possible.
 
-enum { CacheLineSize = 64, ClusterSize = 2 };
+enum { CacheLineSize = 64, ClusterSize = 3 };
 
 struct Cluster {
   TTEntry entry[ClusterSize];
+  char padding[2]; // Align to a divisor of the cache line size
 };
 
 typedef struct Cluster Cluster;
@@ -76,17 +77,17 @@ INLINE void tte_save(TTEntry *tte, Key k, Value v, bool pv, int b, Depth d,
     Move m, Value ev)
 {
   // Preserve any existing move for the same position
-  if (m || k != tte->key)
+  if (m || (uint16_t)k != tte->key16)
     tte->move16 = (uint16_t)m;
 
   // Don't overwrite more valuable entries
-  if (  k != tte->key
-      || d - DEPTH_OFFSET + 2 * pv > tte->depth8 - 4
+  if (  (uint16_t)k != tte->key16
+      || d - DEPTH_OFFSET > tte->depth8 - 4
       || b == BOUND_EXACT)
   {
     assert(d > DEPTH_OFFSET && d < 256 + DEPTH_OFFSET);
 
-    tte->key       = k;
+    tte->key16     = (uint16_t)k;
     tte->depth8    = (uint8_t)(d - DEPTH_OFFSET);
     tte->genBound8 = (uint8_t)(TT.generation8 | ((uint8_t)pv << 2) | b);
     tte->value16   = (int16_t)v;
@@ -138,11 +139,8 @@ INLINE TTEntry *tt_first_entry(Key key)
 
 TTEntry *tt_probe(Key key, bool *found);
 int tt_hashfull(void);
-void tt_reallocate(size_t mbSize);
+void tt_allocate(size_t mbSize);
 void tt_clear(void);
 void tt_clear_worker(int idx);
-
-size_t tt_serialize(const char* filename, int minEntryDepth);
-size_t tt_deserialize(const char* filename);
 
 #endif

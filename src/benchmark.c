@@ -114,7 +114,7 @@ void benchmark(Position *current, char *str)
   char **fens;
   int numFens;
 
-  Limits = (struct LimitsType){ 0 };
+  Limits = (LimitsType){ 0 };
 
   int ttSize      = (token = strtok(str , " ")) ? atoi(token)  : 16;
   int threads     = (token = strtok(NULL, " ")) ? atoi(token)  : 1;

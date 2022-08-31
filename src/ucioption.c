@@ -29,13 +29,11 @@
 
 #include "evaluate.h"
 #include "misc.h"
-#include "numa.h"
 #include "polybook.h"
 #include "search.h"
 #include "settings.h"
 #include "tbprobe.h"
 #include "thread.h"
-#include "tt.h"
 #include "uci.h"
 
 // 'On change' actions, triggered by an option's value change
@@ -86,11 +84,11 @@ static void on_book_file2(Option *opt)
   pb_init(&polybook2, opt->valString);
 }
 
-static void on_use_nnue(Option *opt)
+static void on_use_nnue()
 {
-  const char *s = option_string_value(OPT_USE_NNUE);
-  useNNUE =  strcmp(s, "classical") == 0 ? EVAL_CLASSICAL
-           : strcmp(s, "pure"     ) == 0 ? EVAL_PURE : EVAL_HYBRID;
+    const char* s = option_string_value(OPT_USE_NNUE);
+    useNNUE = strcmp(s, "classical") == 0 ? EVAL_CLASSICAL
+        : strcmp(s, "pure") == 0 ? EVAL_PURE : EVAL_HYBRID;
 }
 
 static void on_best_book_move(Option *opt)
@@ -103,22 +101,6 @@ static void on_book_depth(Option *opt)
   pb_set_book_depth(opt->value);
 }
 
-static void on_serialize_tt(Option* opt);
-
-static void on_deserialize_tt(Option* opt)
-{
-  static bool firstcall = true;
-  if (firstcall)
-  {
-    firstcall = false;
-  }
-  else
-  {
-    size_t count = tt_deserialize(option_string_value(OPT_PERSISTENT_TT_FILE_NAME));
-    printf("info Deserialized %zu entries.\n", count);
-  }
-}
-
 #ifdef IS_64BIT
 #define MAXHASHMB 33554432
 #else
@@ -126,15 +108,10 @@ static void on_deserialize_tt(Option* opt)
 #endif
 
 static Option optionsMap[] = {
-  { "PersistentTTMinDepth", OPT_TYPE_SPIN, 4, 0, 255, NULL, NULL, 0, NULL },
-  { "PersistentTTFileName", OPT_TYPE_STRING, 0, 0, 0, "tt.ptt", NULL, 0, NULL },
-  { "PersistentTTSerialize", OPT_TYPE_BUTTON, 0, 0, 0, NULL, on_serialize_tt, 0, NULL },
-  { "PersistentTTDeserialize", OPT_TYPE_BUTTON, 0, 0, 0, NULL, on_deserialize_tt, 0, NULL },
   { "Threads", OPT_TYPE_SPIN, 1, 1, MAX_THREADS, NULL, on_threads, 0, NULL },
   { "Hash", OPT_TYPE_SPIN, 16, 1, MAXHASHMB, NULL, on_hash_size, 0, NULL },
   { "Clear Hash", OPT_TYPE_BUTTON, 0, 0, 0, NULL, on_clear_hash, 0, NULL },
   { "Ponder", OPT_TYPE_CHECK, 0, 0, 0, NULL, NULL, 0, NULL },
-  { "Anarchy", OPT_TYPE_CHECK, 0, 0, 0, NULL, NULL, 0, NULL },
   { "MultiPV", OPT_TYPE_SPIN, 1, 1, 500, NULL, NULL, 0, NULL },
   { "Skill Level", OPT_TYPE_SPIN, 20, 0, 20, NULL, NULL, 0, NULL },
   { "Move Overhead", OPT_TYPE_SPIN, 10, 0, 5000, NULL, NULL, 0, NULL },
@@ -270,7 +247,7 @@ const char *option_default_string_value(int optIdx)
   return optionsMap[optIdx].defString;
 }
 
-void option_set_value(int optIdx, int value)
+void option_set_value(int optIdx, const int value)
 {
   Option *opt = &optionsMap[optIdx];
 
@@ -279,7 +256,7 @@ void option_set_value(int optIdx, int value)
     opt->onChange(opt);
 }
 
-bool option_set_by_name(char *name, char *value)
+bool option_set_by_name(char *name, const char *value)
 {
   for (Option *opt = optionsMap; opt->name != NULL; opt++) {
     if (opt->type == OPT_TYPE_DISABLED)
@@ -321,20 +298,3 @@ bool option_set_by_name(char *name, char *value)
   return false;
 }
 
-static void on_serialize_tt(Option* opt)
-{
-  static bool firstcall = true;
-
-  (void)opt;
-
-  if (firstcall)
-  {
-    firstcall = false;
-  }
-  else
-  {
-    int minDepth = option_value(OPT_PERSISTENT_TT_MIN_DEPTH);
-    size_t count = tt_serialize(option_string_value(OPT_PERSISTENT_TT_FILE_NAME), minDepth);
-    printf("info Serialized %zu entries.\n", count);
-  }
-}

@@ -34,6 +34,8 @@
 #include "settings.h"
 #include "uci.h"
 
+#include "pragma.h"
+
 #ifndef NNUE_SPARSE
 #define NNUE_REGULAR
 #endif
@@ -233,7 +235,7 @@ INLINE int neon_movemask(uint8x16_t v)
 static alignas(64) uint16_t LookupTableIndices[256][8];
 static alignas(64) uint8_t LookupTableCounts[256];
 
-static inline int lsb_constexpr(uint32_t v)
+INLINE int lsb_constexpr(uint32_t v)
 {
   int c = 0;
   if (!v) return 32;
@@ -330,7 +332,7 @@ INLINE void update_accumulator(const Position *pos, const Color c)
         for (unsigned k = 0; k < removed->size; k++) {
           unsigned index = removed->values[k];
           const unsigned offset = kHalfDimensions * index + i * TILE_HEIGHT;
-          vec16_t *column = (vec16_t *)&ft_weights[offset];
+          vec16_t *column = &ft_weights[offset];
           for (unsigned j = 0; j < NUM_REGS; j++)
             acc[j] = vec_sub_16(acc[j], column[j]);
         }
@@ -339,7 +341,7 @@ INLINE void update_accumulator(const Position *pos, const Color c)
         for (unsigned k = 0; k < added->size; k++) {
           unsigned index = added->values[k];
           const unsigned offset = kHalfDimensions * index + i * TILE_HEIGHT;
-          vec16_t *column = (vec16_t *)&ft_weights[offset];
+          vec16_t *column = &ft_weights[offset];
           for (unsigned j = 0; j < NUM_REGS; j++)
             acc[j] = vec_add_16(acc[j], column[j]);
         }
@@ -362,7 +364,7 @@ INLINE void update_accumulator(const Position *pos, const Color c)
         for (unsigned k = 0; k < removed->size; k++) {
           unsigned index = removed->values[k];
           const unsigned offset = kPsqtBuckets * index + i * PSQT_TILE_HEIGHT;
-          vec32_psqt_t *column = (vec32_psqt_t *)&ft_weights_psqt[offset];
+          vec32_psqt_t *column = &ft_weights_psqt[offset];
           for (unsigned j = 0; j < NUM_PSQT_REGS; j++)
             acc_psqt[j] = vec_sub_psqt_32(acc_psqt[j], column[j]);
         }
@@ -371,7 +373,7 @@ INLINE void update_accumulator(const Position *pos, const Color c)
         for (unsigned k = 0; k < added->size; k++) {
           unsigned index = added->values[k];
           const unsigned offset = kPsqtBuckets * index + i * PSQT_TILE_HEIGHT;
-          vec32_psqt_t *column = (vec32_psqt_t *)&ft_weights_psqt[offset];
+          vec32_psqt_t *column = &ft_weights_psqt[offset];
           for (unsigned j = 0; j < NUM_PSQT_REGS; j++)
             acc_psqt[j] = vec_add_psqt_32(acc_psqt[j], column[j]);
         }
@@ -389,19 +391,19 @@ INLINE void update_accumulator(const Position *pos, const Color c)
     active.size = 0;
     append_active_indices(pos, c, &active);
     for (unsigned i = 0; i < kHalfDimensions / TILE_HEIGHT; i++) {
-      vec16_t *ft_biases_tile = (vec16_t *)&ft_biases[i * TILE_HEIGHT];
+      vec16_t *ft_biases_tile = &ft_biases[i * TILE_HEIGHT];
       for (unsigned j = 0; j < NUM_REGS; j++)
         acc[j] = ft_biases_tile[j];
 
       for (unsigned k = 0; k < active.size; k++) {
         unsigned index = active.values[k];
         unsigned offset = kHalfDimensions * index + i * TILE_HEIGHT;
-        vec16_t *column = (vec16_t *)&ft_weights[offset];
+        vec16_t *column = &ft_weights[offset];
         for (unsigned j = 0; j < NUM_REGS; j++)
           acc[j] = vec_add_16(acc[j], column[j]);
       }
 
-      vec16_t *accTile = (vec16_t *)&accumulator->accumulation[c][i * TILE_HEIGHT];
+      vec16_t *accTile = &accumulator->accumulation[c][i * TILE_HEIGHT];
       for (unsigned j = 0; j < NUM_REGS; j++)
         accTile[j] = acc[j];
     }
@@ -413,12 +415,12 @@ INLINE void update_accumulator(const Position *pos, const Color c)
       for (unsigned k = 0; k < active.size; k++) {
         unsigned index = active.values[k];
         unsigned offset = kPsqtBuckets * index + i * PSQT_TILE_HEIGHT;
-        vec32_psqt_t *column = (vec32_psqt_t *)&ft_weights_psqt[offset];
+        vec32_psqt_t *column = &ft_weights_psqt[offset];
         for (unsigned j = 0; j < NUM_PSQT_REGS; j++)
           acc_psqt[j] = vec_add_psqt_32(acc_psqt[j], column[j]);
       }
 
-      vec32_psqt_t *accTile = (vec32_psqt_t *)&accumulator->accumulation_psqt[c][i * PSQT_TILE_HEIGHT];
+      vec32_psqt_t *accTile = &accumulator->accumulation_psqt[c][i * PSQT_TILE_HEIGHT];
       for (unsigned j = 0; j < NUM_PSQT_REGS; j++)
         accTile[j] = acc_psqt[j];
     }
@@ -456,7 +458,7 @@ INLINE int transform(const Position *pos, clipped_t *output, uint16_t *nnz_indic
       __m256i s0 = ((__m256i *)(*accumulation)[perspectives[p]])[i * 2];
       __m256i s1 = ((__m256i *)(*accumulation)[perspectives[p]])[i * 2 + 1];
       __m256i ss = _mm256_packs_epi16(s0, s1);
-      out[i] = _mm256_permute4x64_epi64(ss, 0b11011000);
+      out[i] = _mm256_permute4x64_epi64(ss, 216);
 
       unsigned nnz = _mm256_movemask_epi8(_mm256_cmpgt_epi8(ss, _mm256_setzero_si256()));
       unsigned b3 = (nnz >> 24) & 0xFF;
@@ -541,7 +543,7 @@ INLINE unsigned bit_shuffle(unsigned v, int left, int right, unsigned mask)
 #include "nnue-regular.c"
 #include "nnue-sparse.c"
 
-static const char *read_hidden_weights_dense(weight_t *w, unsigned outDims, unsigned dims,
+static const char *read_hidden_weights_dense(weight_t *w, const unsigned outDims, unsigned dims,
     const char *d)
 {
   for (unsigned r = 0; r < outDims; r++)
@@ -569,7 +571,7 @@ static const char *read_hidden_weights_sparse(weight_t_sparse *w, unsigned outDi
 }
 #endif
 
-static bool init_weights(const void *evalData, unsigned size)
+static bool init_weights(const void *evalData, const unsigned size)
 {
   if (!ft_biases) {
     if (settings.largePages)
@@ -586,8 +588,8 @@ static bool init_weights(const void *evalData, unsigned size)
     ft_weights_psqt = (int32_t*)(ft_weights + kHalfDimensions * (FtInDims + 1));
   }
 
-  const char *d = (const char *)evalData;
-  unsigned s = readu_le_u32(d+8);
+  const char *d = evalData;
+  const unsigned s = readu_le_u32(d+8);
   d += 4 + 4 + 4 + s + 4;
 
   // Read transformer
@@ -636,7 +638,7 @@ void nnue_export_net(void) {
 #endif
 }
 
-static bool verify_net(const void *evalData, size_t size)
+static bool verify_net(const void *evalData, const size_t size)
 {
   const char *d = evalData;
   if (readu_le_u32(d) != NnueVersion) return false;
@@ -659,7 +661,7 @@ static bool load_eval_file(const char *evalFile)
   } else
 #endif
   {
-    FD fd = open_file(evalFile);
+	  const FD fd = open_file(evalFile);
     if (fd == FD_ERR) return false;
     evalData = map_file(fd, &mapping);
     size = file_size(fd);
@@ -683,7 +685,7 @@ void nnue_init(void)
            : strcmp(s, "pure"     ) == 0 ? EVAL_PURE : EVAL_HYBRID;
 #endif
 
-  const char *evalFile = "fat_titz_2.nnue";
+  const char *evalFile = "big_ballz.nnue";
   if (loadedFile && strcmp(evalFile, loadedFile) == 0)
     return;
 

@@ -131,13 +131,13 @@ void psqt_init(void)
 #endif
   }
 
-  union {
-    uint16_t val[2];
-    uint32_t combi;
-  } tmp;
   NonPawnPieceValue[W_PAWN] = NonPawnPieceValue[B_PAWN] = 0;
   for (int pt = KNIGHT; pt < KING; pt++) {
-    tmp.val[0] = PieceValue[MG][pt];
+	  union {
+		  uint16_t val[2];
+		  uint32_t combi;
+	  } tmp;
+	  tmp.val[0] = PieceValue[MG][pt];
     tmp.val[1] = 0;
     NonPawnPieceValue[pt] = tmp.combi;
     tmp.val[0] = 0;

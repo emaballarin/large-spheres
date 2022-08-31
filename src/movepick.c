@@ -42,15 +42,15 @@ INLINE void partial_insertion_sort(ExtMove *begin, ExtMove *end, int limit)
 
 // pick_best() finds the best move in the range (begin, end).
 
-static Move pick_best(ExtMove *begin, ExtMove *end)
+static Move pick_best(ExtMove *begin, const ExtMove *end)
 {
   ExtMove *p, *q;
 
   for (p = begin, q = begin + 1; q < end; q++)
     if (q->value > p->value)
       p = q;
-  Move m = p->move;
-  int v = p->value;
+  const Move m = p->move;
+  const int v = p->value;
   *p = *begin;
   begin->value = v;
 
@@ -63,8 +63,8 @@ static Move pick_best(ExtMove *begin, ExtMove *end)
 
 static void score_captures(const Position *pos)
 {
-  Stack *st = pos->st;
-  CapturePieceToHistory *history = pos->captureHistory;
+	const Stack *st = pos->st;
+	CapturePieceToHistory *history = pos->captureHistory;
 
   // Winning and equal captures in the main search are ordered by MVV,
   // preferring captures near our with a good history.
@@ -77,37 +77,39 @@ static void score_captures(const Position *pos)
 SMALL
 static void score_quiets(const Position *pos)
 {
-  Stack *st = pos->st;
-  ButterflyHistory *history = pos->mainHistory;
+	const Stack *st = pos->st;
+	ButterflyHistory *history = pos->mainHistory;
+  LowPlyHistory *lph = pos->lowPlyHistory;
 
-  PieceToHistory *cmh = (st-1)->history;
-  PieceToHistory *fmh = (st-2)->history;
-  PieceToHistory *fmh2 = (st-4)->history;
-  PieceToHistory *fmh3 = (st-6)->history;
+	PieceToHistory *cmh = (st-1)->history;
+	PieceToHistory *fmh = (st-2)->history;
+	PieceToHistory *fmh2 = (st-4)->history;
+	PieceToHistory *fmh3 = (st-6)->history;
 
-  Color c = stm();
+	const Color c = stm();
 
   for (ExtMove *m = st->cur; m < st->endMoves; m++) {
-    uint32_t move = m->move & 4095;
-    Square to = move & 63;
-    Square from = move >> 6;
+	  const uint32_t move = m->move & 4095;
+	  const Square to = move & 63;
+	  const Square from = move >> 6;
     m->value =      (*history)[c][move]
               + 2 * (*cmh)[piece_on(from)][to]
               +     (*fmh)[piece_on(from)][to]
               +     (*fmh2)[piece_on(from)][to]
-              +     (*fmh3)[piece_on(from)][to];
+              +     (*fmh3)[piece_on(from)][to]
+              + (st->mp_ply < MAX_LPH ? min(4, st->depth / 3) * (*lph)[st->mp_ply][move] : 0);
   }
 }
 
 static void score_evasions(const Position *pos)
 {
-  Stack *st = pos->st;
+	const Stack *st = pos->st;
   // Try captures ordered by MVV/LVA, then non-captures ordered by
   // stats heuristics.
 
-  ButterflyHistory *history = pos->mainHistory;
-  PieceToHistory *cmh = (st-1)->history;
-  Color c = stm();
+	ButterflyHistory *history = pos->mainHistory;
+	PieceToHistory *cmh = (st-1)->history;
+	const Color c = stm();
 
   for (ExtMove *m = st->cur; m < st->endMoves; m++)
     if (is_capture(pos, m->move))

@@ -39,26 +39,26 @@ static uint32_t KPKBitbase[MAX_INDEX / 32];
 // bit 13-14: white pawn file (from FILE_A to FILE_D)
 // bit 15-17: white pawn RANK_7 - rank
 //            (from RANK_7 - RANK_7 to RANK_7 - RANK_2)
-static unsigned bb_index(unsigned us, Square bksq, Square wksq, Square psq)
+static unsigned bb_index(const unsigned us, const Square bksq, const Square wksq, const Square psq)
 {
   return wksq | (bksq << 6) | (us << 12) | (file_of(psq) << 13) | ((RANK_7 - rank_of(psq)) << 15);
 }
 
 enum { RES_INVALID = 0, RES_UNKNOWN = 1, RES_DRAW = 2, RES_WIN = 4 };
 
-bool bitbases_probe(Square wksq, Square wpsq, Square bksq, Color us)
+bool bitbases_probe(const Square wksq, const Square wpsq, const Square bksq, const Color us)
 {
   assert(file_of(wpsq) <= FILE_D);
 
-  unsigned idx = bb_index(us, bksq, wksq, wpsq);
+  const unsigned idx = bb_index(us, bksq, wksq, wpsq);
   return KPKBitbase[idx / 32] & (1U << (idx & 0x1F));
 }
 
-static uint8_t initial(unsigned idx)
+static uint8_t initial(const unsigned idx)
 {
   int ksq[2] = { (idx >> 0) & 0x3f, (idx >> 6) & 0x3f };
-  Color us   = (idx >> 12) & 0x01;
-  int psq    = make_square((idx >> 13) & 0x03, RANK_7 - ((idx >> 15) & 0x07));
+  const Color us   = (idx >> 12) & 0x01;
+  const int psq    = make_square((idx >> 13) & 0x03, RANK_7 - ((idx >> 15) & 0x07));
 
   // Check if two pieces are on the same square or if a king can be captured
   if (   distance(ksq[WHITE], ksq[BLACK]) <= 1
@@ -85,11 +85,11 @@ static uint8_t initial(unsigned idx)
   return RES_UNKNOWN;
 }
 
-static uint8_t classify(uint8_t *db, unsigned idx)
+static uint8_t classify(uint8_t *db, const unsigned idx)
 {
-  int ksq[2] = { (idx >> 0) & 0x3f, (idx >> 6) & 0x3f };
-  Color us   = (idx >> 12) & 0x01;
-  int psq    = make_square((idx >> 13) & 0x03, RANK_7 - ((idx >> 15) & 0x07));
+	const int ksq[2] = { (idx >> 0) & 0x3f, (idx >> 6) & 0x3f };
+	const Color us   = (idx >> 12) & 0x01;
+	const int psq    = make_square((idx >> 13) & 0x03, RANK_7 - ((idx >> 15) & 0x07));
 
   // White to move: If one move leads to a position classified as WIN, the
   // result of the current position is WIN. If all moves lead to positions
@@ -101,9 +101,9 @@ static uint8_t classify(uint8_t *db, unsigned idx)
   // classified as WIN, the position is classified as WIN, otherwise the
   // current position is classified as UNKNOWN.
 
-  Color them = !us;
-  int good = (us == WHITE ? RES_WIN : RES_DRAW);
-  int bad  = (us == WHITE ? RES_DRAW : RES_WIN);
+	const Color them = !us;
+	const int good = (us == WHITE ? RES_WIN : RES_DRAW);
+	const int bad  = (us == WHITE ? RES_DRAW : RES_WIN);
 
   uint8_t r = RES_INVALID;
   Bitboard b = PseudoAttacks[KING][ksq[us]];

@@ -28,14 +28,14 @@ ifeq ($(KERNEL),Linux)
 endif
 
 ### Executable name
-EXE = fat_titz_2
+EXE = big-ballz
 
 ### Installation dir definitions
 PREFIX = /usr/local
 BINDIR = $(PREFIX)/bin
 
 ### Built-in benchmark for pgo-builds
-PGOBENCH = ./$(EXE) bench 16 1 15 default depth nnue
+PGOBENCH = ./$(EXE) bench 16 1 16 default depth nnue
 
 ### Object files
 OBJS = benchmark.o bitbase.o bitboard.o endgame.o evaluate.o main.o \
@@ -107,7 +107,7 @@ vnni = no
 neon = no
 ARCH = auto
 native = no
-embed = no
+embed = yes
 STRIP = strip
 
 ### 2.2 Architecture specific
@@ -749,7 +749,8 @@ ifeq ($(debug),no)
 	else ifeq ($(comp),gcc)
 	ifeq ($(gccisclang),)
 		CFLAGS += -flto
-		LDFLAGS += $(CFLAGS) -flto=jobserver
+#		LDFLAGS += $(CFLAGS) -flto=jobserver jobserver removed NS /8/29/2022
+		LDFLAGS += $(CFLAGS)
 		ifneq ($(findstring MINGW,$(KERNEL)),)
 			LDFLAGS += -save-temps
 		else ifneq ($(findstring MSYS,$(KERNEL)),)
@@ -765,7 +766,8 @@ ifeq ($(debug),no)
 # older might not.
 	else ifeq ($(comp),mingw)
 		CFLAGS += -flto
-		LDFLAGS += $(CFLAGS) -flto=jobserver
+#		LDFLAGS += $(CFLAGS) -flto=jobserver jobserver removed NS /8/29/2022		
+		LDFLAGS += $(CFLAGS)
 	endif
 endif
 endif
@@ -785,7 +787,7 @@ endif
 
 help:
 	@echo ""
-	@echo "To compile Fat Titz, type: "
+	@echo "To compile Big Ballz, type: "
 	@echo ""
 	@echo "make target [ARCH=arch] [COMP=compiler] [COMPCC=cc]"
 	@echo ""
@@ -867,14 +869,14 @@ profile-build: net config-sanity objclean profileclean
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) $(profile_make)
 	@echo ""
 	@echo "Step 2/4. Running benchmark for pgo-build ..."
-	$(PGOBENCH) > /dev/null
+	$(PGOBENCH)
 	@echo ""
 	@echo "Step 3/4. Building optimized executable ..."
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) objclean
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) $(profile_use)
 	@echo ""
-	@echo "Step 4/4. NOT deleting profile data ..."
-#	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) profileclean
+	@echo "Step 4/4. Deleting profile data ..."
+	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) profileclean
 
 pgo: profile-build
 
@@ -891,7 +893,7 @@ clean: objclean profileclean
 
 net:
 	$(eval nnuenet := $(shell grep DefaultEvalFile evaluate.h | sed 's/.*\(nn-[a-z0-9]\{12\}.nnue\).*/\1/'))
-	@echo "Default net: $(nnuenet)"
+#   @echo "Default net: $(nnuenet)"
 
 # clean binaries and objects
 objclean:
@@ -901,7 +903,7 @@ objclean:
 profileclean:
 	@rm -rf profdir
 	@rm -f bench.txt *.gcda *.gcno
-	@rm -f fat_titz.profdata *.profraw
+	@rm -f big_ballz.profdata *.profraw
 
 default:
 	help
@@ -978,9 +980,9 @@ clang-profile-make:
 	all
 
 clang-profile-use:
-	$(XCRUN) llvm-profdata merge -output=fat_titz.profdata *.profraw
+	$(XCRUN) llvm-profdata merge -output=big_ballz.profdata *.profraw
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRACFLAGS='-fprofile-instr-use=fat_titz.profdata' \
+	EXTRACFLAGS='-fprofile-instr-use=big_ballz.profdata' \
 	EXTRALDFLAGS='-fprofile-use ' \
 	all
 

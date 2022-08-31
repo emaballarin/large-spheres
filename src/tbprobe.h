@@ -6,7 +6,7 @@
 extern int TB_MaxCardinality;
 extern int TB_MaxCardinalityDTM;
 
-void TB_init(char *path);
+void TB_init(const char *path);
 void TB_free(void);
 void TB_release(void);
 int TB_probe_wdl(Position *pos, int *success);

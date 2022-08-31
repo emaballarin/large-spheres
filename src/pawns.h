@@ -50,7 +50,7 @@ struct PawnEntry {
   uint8_t openFiles;
 };
 
-typedef struct PawnEntry PawnEntry;
+typedef PawnEntry PawnEntry;
 typedef PawnEntry PawnTable[PAWN_ENTRIES];
 
 Score do_king_safety_white(PawnEntry *pe, const Position *pos, Square ksq);
@@ -59,7 +59,7 @@ Score do_king_safety_black(PawnEntry *pe, const Position *pos, Square ksq);
 Value shelter_storm_white(const Position *pos, Square ksq);
 Value shelter_storm_black(const Position *pos, Square ksq);
 
-void pawn_entry_fill(const Position *pos, PawnEntry *e, Key k);
+void pawn_entry_fill(const Position *pos, PawnEntry *e, Key key);
 
 INLINE PawnEntry *pawn_probe(const Position *pos)
 {

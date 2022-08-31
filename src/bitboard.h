@@ -29,7 +29,6 @@ void bitbases_init(void);
 bool bitbases_probe(Square wksq, Square wpsq, Square bksq, Color us);
 
 void bitboards_init(void);
-void print_pretty(Bitboard b);
 
 #define AllSquares (~0ULL)
 #define DarkSquares  0xAA55AA55AA55AA55ULL
@@ -74,7 +73,7 @@ extern Bitboard PseudoAttacks[8][64];
 extern Bitboard PawnAttacks[2][64];
 
 
-INLINE __attribute__((pure)) Bitboard sq_bb(Square s)
+INLINE Bitboard sq_bb(const Square s)
 {
   return SquareBB[s];
 }

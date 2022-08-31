@@ -26,12 +26,10 @@
 #endif
 
 #include "bitboard.h"
-#include "numa.h"
 #include "settings.h"
 #include "thread.h"
 #include "tt.h"
 #include "types.h"
-#include "uci.h"
 
 TranspositionTable TT; // Our global transposition table
 
@@ -45,12 +43,10 @@ void tt_free(void)
 }
 
 
-void tt_reallocate(size_t mbSize)
-{
-  size_t oldClusterCount = TT.clusterCount;
-  Cluster* oldTable = TT.table;
-  alloc_t oldAlloc = TT.alloc;
+// tt_allocate() allocates the transposition table, measured in megabytes.
 
+void tt_allocate(const size_t mbSize)
+{
   TT.clusterCount = mbSize * 1024 * 1024 / sizeof(Cluster);
   size_t size = TT.clusterCount * sizeof(Cluster);
 
@@ -68,47 +64,20 @@ void tt_reallocate(size_t mbSize)
   }
   if (!TT.table)
     TT.table = allocate_memory(size, false, &TT.alloc);
-  if (!TT.table && oldTable)
-  {
-    TT.table = oldTable;
-    oldTable = NULL;
-  }
   if (!TT.table)
     goto failed;
 
   // Clear the TT table to page in the memory immediately. This avoids
   // an initial slow down during the first second or minutes of the search.
   tt_clear();
-
-  if (oldTable)
-  {
-    for (size_t i = 0; i < oldClusterCount; ++i)
-    {
-      for (size_t j = 0; j < ClusterSize; ++j)
-      {
-        bool found;
-        TTEntry* source = &(oldTable[i].entry[j]);
-        if (source->depth8)
-        {
-          TTEntry* tte = tt_probe(source->key, &found);
-          if (source->depth8 > tte->depth8)
-          {
-            *tte = *source;
-          }
-        }
-      }
-    }
-
-    free_memory(&oldAlloc);
-  }
-
   return;
 
 failed:
   fprintf(stderr, "Failed to allocate %"PRIu64"MB for "
-                  "transposition table.\n", (uint64_t)mbSize);
+                  "transposition table.\n", mbSize);
   exit(EXIT_FAILURE);
 }
+
 
 // tt_clear() initialises the entire transposition table to zero.
 
@@ -125,14 +94,14 @@ void tt_clear(void)
   }
 }
 
-void tt_clear_worker(int idx)
+void tt_clear_worker(const int idx)
 {
   // Find out which part of the TT this thread should clear.
   // To each thread we assign a number of 2MB blocks.
 
   size_t total = TT.clusterCount * sizeof(Cluster);
-  size_t slice = (total + Threads.numThreads - 1) / Threads.numThreads;
-  size_t blocks = (slice + (2 * 1024 * 1024) - 1) / (2 * 1024 * 1024);
+  const size_t slice = (total + Threads.numThreads - 1) / Threads.numThreads;
+  const size_t blocks = (slice + (2 * 1024 * 1024) - 1) / (2 * 1024 * 1024);
   size_t begin = idx * blocks * (2 * 1024 * 1024);
   size_t end = begin + blocks * (2 * 1024 * 1024);
   begin = min(begin, total);
@@ -154,10 +123,11 @@ void tt_clear_worker(int idx)
 TTEntry *tt_probe(Key key, bool *found)
 {
   TTEntry *tte = tt_first_entry(key);
+  const uint16_t key16 = key; // Use the low 16 bits as key inside the cluster
 
   for (int i = 0; i < ClusterSize; i++)
-    if (tte[i].key == key || !tte[i].depth8) {
-//      if ((tte[i].genBound8 & 0xF8) != TT.generation8 && tte[i].key)
+    if (tte[i].key16 == key16 || !tte[i].depth8) {
+//      if ((tte[i].genBound8 & 0xF8) != TT.generation8 && tte[i].key16)
       tte[i].genBound8 = TT.generation8 | (tte[i].genBound8 & 0x7); // Refresh
       *found = tte[i].depth8;
       return &tte[i];
@@ -191,102 +161,4 @@ int tt_hashfull(void)
       cnt += tte[j].depth8 && (tte[j].genBound8 & 0xf8) == TT.generation8;
   }
   return cnt * 1000 / (ClusterSize * (1000 / ClusterSize));
-}
-
-size_t tt_serialize(const char* filename, int minEntryDepth)
-{
-  assert(minEntryDepth < 256);
-  assert(minEntryDepth >= 0);
-
-  FILE* f = fopen(filename, "wb");
-  fwrite("SFTT", 1, 4, f); // magic
-  fwrite("\0", 1, 1, f); // version
-  for (int i = 0; i < 91; ++i)
-  {
-    fwrite("\0", 1, 1, f); // fen
-  }
-  fwrite("\0\0\0\0\0\0\0\0", 1, 8, f); // nodes
-  fwrite("\0", 1, 1, f); // root depth
-  uint8_t d = minEntryDepth;
-  fwrite(&d, 1, 1, f); // min entry depth
-  for (int i = 0; i < 22; ++i)
-  {
-    fwrite("\0", 1, 1, f); // reserved
-  }
-
-  size_t numWritten = 0;
-  for (size_t i = 0; i < TT.clusterCount; ++i)
-  {
-    for (size_t j = 0; j < ClusterSize; ++j)
-    {
-      TTEntry* tte = &(TT.table[i].entry[j]);
-      if (tte->depth8)
-      {
-        int actualDepth = tte->depth8 + DEPTH_OFFSET;
-        if (actualDepth >= minEntryDepth)
-        {
-          fwrite(tte, 16, 1, f);
-          ++numWritten;
-          if (numWritten % 1000000 == 0)
-          {
-            printf("info Serialized %zu entries so far...\n", numWritten);
-          }
-        }
-      }
-    }
-  }
-
-  fclose(f);
-
-  return numWritten;
-}
-
-size_t tt_deserialize(const char* filename)
-{
-  FILE* f = fopen(filename, "rb");
-  char buf[4];
-  if (fread(buf, 1, 4, f) != 4)
-  {
-    fclose(f);
-    return 0;
-  }
-
-  if (buf[0] != 'S' || buf[1] != 'F' || buf[2] != 'T' || buf[3] != 'T')
-  {
-    printf("Invalid magic.\n");
-    fclose(f);
-    return 0;
-  }
-
-  char header[124];
-  if (fread(header, 1, 124, f) != 124)
-  {
-    printf("Invalid header.\n");
-    fclose(f);
-    return 0;
-  }
-
-  size_t numRead = 0;
-  process_delayed_settings();
-
-  TTEntry entry;
-  while (fread(&entry, 16, 1, f) == 1)
-  {
-    bool found;
-    TTEntry* tte = tt_probe(entry.key, &found);
-    (void)found;
-    if (entry.depth8 > tte->depth8)
-    {
-      *tte = entry;
-      ++numRead;
-      if (numRead % 1000000 == 0)
-      {
-        printf("info Deserialized %zu entries so far...\n", numRead);
-      }
-    }
-  }
-
-  fclose(f);
-
-  return numRead;
 }

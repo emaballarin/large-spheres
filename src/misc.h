@@ -119,15 +119,15 @@ typedef struct RunningAverage {
 } RunningAverage;
 
 // Reset the running average to rational value p / q
-inline void RunningAverage_set(RunningAverage* ra, int64_t p, int64_t q)
+INLINE void RunningAverage_set(RunningAverage* ra, const int64_t p, const int64_t q)
   { ra->average = p * RA_PERIOD * RA_RESOLUTION / q; }
 
 // Update average with value v
-inline void RunningAverage_update(RunningAverage* ra, int64_t v)
+INLINE void RunningAverage_update(RunningAverage* ra, const int64_t v)
   { ra->average = RA_RESOLUTION * v + (RA_PERIOD - 1) * ra->average / RA_PERIOD; }
 
 // Test if average is strictly greater than rational a / b
-inline bool RunningAverage_is_greater(const RunningAverage* ra, int64_t a, int64_t b)
+INLINE bool RunningAverage_is_greater(const RunningAverage* ra, const int64_t a, const int64_t b)
   { return b * ra->average > a * RA_PERIOD * RA_RESOLUTION ; }
 
 /// sigmoid(t, x0, y0, C, P, Q) implements a sigmoid-like function using only integers,
@@ -145,11 +145,12 @@ inline bool RunningAverage_is_greater(const RunningAverage* ra, int64_t a, int64
 ///
 /// Use <https://www.desmos.com/calculator/jhh83sqq92> to draw the sigmoid
 
-inline int64_t sigmoid(int64_t t, int64_t x0,
-                                  int64_t y0,
-                                  int64_t  C,
-                                  int64_t  P,
-                                  int64_t  Q)
+INLINE int64_t sigmoid(const int64_t t,
+					   const int64_t x0,
+                       const int64_t y0,
+                       const int64_t  C,
+                       const int64_t  P,
+                       const int64_t  Q)
 {
    assert(C > 0);
    int64_t xxx = t-x0;

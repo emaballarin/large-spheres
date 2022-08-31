@@ -32,10 +32,10 @@
 #include "tbprobe.h"
 #include "nnue.h"
 
-int main(int argc, char **argv)
+int main(const int argc, char **argv)
 {
   print_engine_info(false);
-
+  print_compiler_info();
   psqt_init();
   bitboards_init();
   zob_init();

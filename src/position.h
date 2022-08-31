@@ -25,7 +25,6 @@
 #ifndef _WIN32
 #include <pthread.h>
 #endif
-#include <stdatomic.h>
 #include <stddef.h>  // For offsetof()
 #include <string.h>
 
@@ -219,6 +218,7 @@ struct Position {
   // Pointers to thread-specific tables.
   CounterMoveStat *counterMoves;
   ButterflyHistory *mainHistory;
+  LowPlyHistory *lowPlyHistory;
   CapturePieceToHistory *captureHistory;
   PawnEntry *pawnTable;
   MaterialEntry *materialTable;
@@ -244,7 +244,6 @@ struct Position {
 // FEN string input/output
 void pos_set(Position *pos, char *fen, int isChess960);
 void pos_fen(const Position *pos, char *fen);
-void print_pos(Position *pos);
 
 //PURE Bitboard attackers_to_occ(const Position *pos, Square s, Bitboard occupied);
 PURE Bitboard slider_blockers(const Position *pos, Bitboard sliders, Square s,
@@ -281,7 +280,7 @@ PURE bool has_game_cycle(const Position *pos, int ply);
 #define square_of(c,p) lsb(pieces_cp(c,p))
 #define loop_through_pieces(c,p,s) \
   for (Bitboard bb_pieces = pieces_cp(c,p); \
-      bb_pieces && (s = pop_lsb(&bb_pieces), true);)
+      bb_pieces && ((s) = pop_lsb(&bb_pieces), true);)
 #define piece_count_mk(c, p) (((material_key()) >> (20 * (c) + 4 * (p) + 4)) & 15)
 
 // Castling

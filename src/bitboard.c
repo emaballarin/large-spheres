@@ -30,7 +30,7 @@ uint8_t SquareDistance[64][64];
 static int RookDirs[] = { NORTH, EAST, SOUTH, WEST };
 static int BishopDirs[] = { NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST };
 
-static Bitboard sliding_attack(int dirs[], Square sq, Bitboard occupied)
+static Bitboard sliding_attack(int dirs[], const Square sq, const Bitboard occupied)
 {
   Bitboard attack = 0;
 
@@ -99,23 +99,6 @@ INLINE unsigned popcount16(unsigned u)
 #endif
 
 
-// Bitboards::pretty() returns an ASCII representation of a bitboard suitable
-// to be printed to standard output. Useful for debugging.
-
-void print_pretty(Bitboard b)
-{
-  printf("+---+---+---+---+---+---+---+---+\n");
-
-  for (int r = 7; r >= 0; r--) {
-    for (int f = 0; f <= 7; f++)
-      printf((b & sq_bb(8 * r + f)) ? "| X " : "|   ");
-
-    printf("| %d\n+---+---+---+---+---+---+---+---+\n", 1 + r);
-  }
-  printf("  a   b   c   d   e   f   g   h\n");
-}
-
-
 // bitboards_init() initializes various bitboard tables. It is called at
 // startup and relies on global objects to be already zero-initialized.
 
@@ -158,7 +141,7 @@ void bitboards_init(void)
                        | ((sq_bb(s) << 1) & ~FileABB);
 #endif
 
-  int steps[][5] = {
+  const int steps[][5] = {
     {0}, { 7, 9 }, { 6, 10, 15, 17 }, {0}, {0}, {0}, { 1, 7, 8, 9 }
   };
 

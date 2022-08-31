@@ -22,8 +22,6 @@
 #define SEARCH_H
 
 #include "misc.h"
-#include "position.h"
-#include "thread.h"
 #include "types.h"
 
 // RootMove struct is used for moves at the root of the tree. For each root
@@ -42,14 +40,14 @@ struct RootMove {
   Move pv[MAX_PLY];
 };
 
-typedef struct RootMove RootMove;
+typedef RootMove RootMove;
 
 struct RootMoves {
   int size;
   RootMove move[MAX_MOVES];
 };
 
-typedef struct RootMoves RootMoves;
+typedef RootMoves RootMoves;
 
 /// LimitsType struct stores information sent by GUI about available time to
 /// search the current move, maximum depth/time, if we are in analysis mode or
@@ -70,7 +68,7 @@ struct LimitsType {
   Move searchmoves[MAX_MOVES];
 };
 
-typedef struct LimitsType LimitsType;
+typedef LimitsType LimitsType;
 
 extern LimitsType Limits;
 

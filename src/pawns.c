@@ -86,8 +86,7 @@ INLINE Score pawn_evaluate(const Position *pos, PawnEntry *e, const Color Us)
   const int   Up    = Us == WHITE ? NORTH : SOUTH;
   const int   Down  = Us == WHITE ? SOUTH : NORTH;
 
-  Bitboard neighbours, stoppers, doubled, support, phalanx, opposed;
-  Bitboard lever, leverPush, blocked;
+  Bitboard neighbours, stoppers, support, phalanx, opposed;
   Square s;
   bool backward, passed;
   Score score = SCORE_ZERO;
@@ -108,7 +107,11 @@ INLINE Score pawn_evaluate(const Position *pos, PawnEntry *e, const Color Us)
 
   // Loop through all pawns of the current color and score each pawn
   loop_through_pieces(Us, PAWN, s) {
-    assert(piece_on(s) == make_piece(Us, PAWN));
+	  Bitboard blocked;
+	  Bitboard leverPush;
+	  Bitboard lever;
+	  Bitboard doubled;
+	  assert(piece_on(s) == make_piece(Us, PAWN));
 
     int f = file_of(s);
     int r = relative_rank_s(Us, s);

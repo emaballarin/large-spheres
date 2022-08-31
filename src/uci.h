@@ -36,15 +36,10 @@ enum {
 };
 
 enum {
-  OPT_PERSISTENT_TT_MIN_DEPTH,
-  OPT_PERSISTENT_TT_FILE_NAME,
-  OPT_PERSISTENT_TT_SERIALIZE,
-  OPT_PERSISTENT_TT_DESERIALIZE,
   OPT_THREADS,
   OPT_HASH,
   OPT_CLEAR_HASH,
   OPT_PONDER,
-  OPT_ANARCHY,
   OPT_MULTI_PV,
   OPT_SKILL_LEVEL,
   OPT_MOVE_OVERHEAD,
@@ -83,14 +78,14 @@ struct Option {
 void options_init(void);
 void options_free(void);
 void print_options(void);
-int option_value(int opt);
+int option_value(int optIdx);
 const char *option_string_value(int opt);
 const char *option_default_string_value(int opt);
 void option_set_value(int opt, int value);
-bool option_set_by_name(char *name, char *value);
+bool option_set_by_name(char *name, const char *value);
 
-void setoption(char *str);
-void position(Position *pos, char *str);
+void setoption(const char *str);
+void position(Position *pos, const char *str);
 
 void uci_loop(int argc, char* argv[]);
 char *uci_value(char *str, Value v);

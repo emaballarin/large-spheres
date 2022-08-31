@@ -23,22 +23,24 @@
 #include "movegen.h"
 #include "position.h"
 #include "types.h"
-#include "uci.h"
 
 enum { CAPTURES, QUIETS, QUIET_CHECKS, EVASIONS, NON_EVASIONS, LEGAL };
 
 
-INLINE ExtMove *make_promotions(ExtMove *list, Square to,
+INLINE ExtMove *make_promotions(ExtMove *list, Square to, Square ksq,
     const int Type, const int D)
 {
   if (Type == CAPTURES || Type == EVASIONS || Type == NON_EVASIONS) {
     (list++)->move = make_promotion(to - D, to, QUEEN);
+    if (attacks_from_knight(to) & sq_bb(ksq))
+      (list++)->move = make_promotion(to - D, to, KNIGHT);
   }
 
   if (Type == QUIETS || Type == EVASIONS || Type == NON_EVASIONS) {
     (list++)->move = make_promotion(to - D, to, ROOK);
     (list++)->move = make_promotion(to - D, to, BISHOP);
-    (list++)->move = make_promotion(to - D, to, KNIGHT);
+    if (!(attacks_from_knight(to) & sq_bb(ksq)))
+      (list++)->move = make_promotion(to - D, to, KNIGHT);
   }
 
   return list;
@@ -106,13 +108,13 @@ INLINE ExtMove *generate_pawn_moves(const Position *pos, ExtMove *list,
       b3 &= target;
 
     while (b1)
-      list = make_promotions(list, pop_lsb(&b1), Type, Right);
+      list = make_promotions(list, pop_lsb(&b1), pos->st->ksq, Type, Right);
 
     while (b2)
-      list = make_promotions(list, pop_lsb(&b2), Type, Left);
+      list = make_promotions(list, pop_lsb(&b2), pos->st->ksq, Type, Left);
 
     while (b3)
-      list = make_promotions(list, pop_lsb(&b3), Type, Up);
+      list = make_promotions(list, pop_lsb(&b3), pos->st->ksq, Type, Up);
   }
 
   // Standard and en-passant captures
@@ -181,8 +183,6 @@ INLINE ExtMove *generate_all(const Position *pos, ExtMove *list, const Color Us,
   const Square ksq = square_of(Us, KING);
   Bitboard target;
 
-  bool onlyEp = option_value(OPT_ANARCHY) && ep_square() != 0;
-
   if (Type == EVASIONS && more_than_one(checkers()))
     goto kingMoves; // Double check, only a king move can save the day
 
@@ -191,16 +191,13 @@ INLINE ExtMove *generate_all(const Position *pos, ExtMove *list, const Color Us,
           : Type == CAPTURES     ? pieces_c(!Us) : ~pieces();
 
   list = generate_pawn_moves(pos, list, target, Us, Type);
-  if (!onlyEp)
-  {
-    list = generate_moves(pos, list, target, Us, KNIGHT, Checks);
-    list = generate_moves(pos, list, target, Us, BISHOP, Checks);
-    list = generate_moves(pos, list, target, Us,   ROOK, Checks);
-    list = generate_moves(pos, list, target, Us,  QUEEN, Checks);
-  }
+  list = generate_moves(pos, list, target, Us, KNIGHT, Checks);
+  list = generate_moves(pos, list, target, Us, BISHOP, Checks);
+  list = generate_moves(pos, list, target, Us,   ROOK, Checks);
+  list = generate_moves(pos, list, target, Us,  QUEEN, Checks);
 
 kingMoves:
-  if ((!Checks || blockers_for_king(pos, !Us) & sq_bb(ksq)) && !onlyEp) {
+  if (!Checks || blockers_for_king(pos, !Us) & sq_bb(ksq)) {
     Bitboard b = attacks_from(KING, ksq) & (Type == EVASIONS ? ~pieces_c(Us) : target);
     if (Checks)
       b &= ~PseudoAttacks[QUEEN][square_of(!Us, KING)];
@@ -223,7 +220,8 @@ kingMoves:
 }
 
 
-// generate_captures() generates all pseudo-legal captures plus queen promotions.
+// generate_captures() generates all pseudo-legal captures plus queen and
+// checking knight promotions.
 //
 // generate_quiets() generates all pseudo-legal non-captures and
 // underpromotions (except checking knight promotions).
@@ -231,7 +229,7 @@ kingMoves:
 // generate_evasions() generates all pseudo-legal check evasions
 //
 // generate_quiet_checks() generates all pseudo-legal non-captures giving
-// check, except castling and promotions
+// check, except castling
 //
 // generate_non_evasions() generates all pseudo-legal captures and
 // non-captures.
@@ -282,17 +280,14 @@ NOINLINE ExtMove *generate_legal(const Position *pos, ExtMove *list)
   Bitboard pinned = blockers_for_king(pos, us) & pieces_c(us);
   Square ksq = square_of(us, KING);
   ExtMove *cur = list;
-  bool onlyEp = option_value(OPT_ANARCHY) && ep_square() != 0;
 
   list = checkers() ? generate_evasions(pos, list)
                     : generate_non_evasions(pos, list);
   while (cur != list)
-    if (  (  (  (pinned && pinned & sq_bb(from_sq(cur->move)))
-             || from_sq(cur->move) == ksq
-             || type_of_m(cur->move) == ENPASSANT)
-          && !is_legal(pos, cur->move))
-        || (onlyEp && type_of_m(cur->move) != ENPASSANT)
-      )
+    if (  (  (pinned && pinned & sq_bb(from_sq(cur->move)))
+           || from_sq(cur->move) == ksq
+           || type_of_m(cur->move) == ENPASSANT)
+        && !is_legal(pos, cur->move))
       cur->move = (--list)->move;
     else
       ++cur;

@@ -52,20 +52,19 @@ static char date[] = __DATE__;
 
 void print_engine_info(bool to_uci)
 {
-  char my_date[64];
-
-  printf("Fat Titz 2 %s", Version);
+	printf("Big Ballz %s", Version);
 
   if (strlen(Version) == 0) {
-    int day, month, year;
+	  char my_date[64];
+	  int month;
 
     strcpy(my_date, date);
-    char *str = strtok(my_date, " "); // month
+    const char *str = strtok(my_date, " "); // month
     for (month = 1; strncmp(str, &months[3 * month - 3], 3) != 0; month++);
     str = strtok(NULL, " "); // day
-    day = atoi(str);
+    const int day = atoi(str);
     str = strtok(NULL, " "); // year
-    year = atoi(str);
+    const int year = atoi(str);
 
     printf("%02d%02d%02d", day, month, year % 100);
   }
@@ -210,7 +209,7 @@ void print_compiler_info(void)
 // For further analysis see
 //   <http://vigna.di.unimi.it/ftp/papers/xorshift.pdf>
 
-void prng_init(PRNG *rng, uint64_t seed)
+void prng_init(PRNG *rng, const uint64_t seed)
 {
   rng->s = seed;
 }
@@ -229,9 +228,9 @@ uint64_t prng_rand(PRNG *rng)
 
 uint64_t prng_sparse_rand(PRNG *rng)
 {
-  uint64_t r1 = prng_rand(rng);
-  uint64_t r2 = prng_rand(rng);
-  uint64_t r3 = prng_rand(rng);
+	const uint64_t r1 = prng_rand(rng);
+	const uint64_t r2 = prng_rand(rng);
+	const uint64_t r3 = prng_rand(rng);
   return r1 & r2 & r3;
 }
 
@@ -258,7 +257,7 @@ size_t largePageMinimum;
 
 bool large_pages_supported(void)
 {
-  GLPM impGetLargePageMinimum =
+	const GLPM impGetLargePageMinimum =
     (GLPM)(void (*)(void))GetProcAddress(GetModuleHandle("kernel32.dll"),
         "GetLargePageMinimum");
   if (!impGetLargePageMinimum)
@@ -346,8 +345,8 @@ size_t file_size(FD fd)
   return statbuf.st_size;
 
 #else
-  DWORD sizeLow, sizeHigh;
-  sizeLow = GetFileSize(fd, &sizeHigh);
+  DWORD sizeHigh;
+  const DWORD sizeLow = GetFileSize(fd, &sizeHigh);
   return ((uint64_t)sizeHigh << 32) | sizeLow;
 
 #endif
@@ -364,8 +363,8 @@ const void *map_file(FD fd, map_t *map)
   return data == MAP_FAILED ? NULL : data;
 
 #else
-  DWORD sizeLow, sizeHigh;
-  sizeLow = GetFileSize(fd, &sizeHigh);
+  DWORD sizeHigh;
+  const DWORD sizeLow = GetFileSize(fd, &sizeHigh);
   *map = CreateFileMapping(fd, NULL, PAGE_READONLY, sizeHigh, sizeLow, NULL);
   if (*map == NULL)
     return NULL;
@@ -394,8 +393,8 @@ void *allocate_memory(size_t size, bool lp, alloc_t *alloc)
 
 #ifdef _WIN32
   if (lp) {
-    size_t pageSize = largePageMinimum;
-    size_t lpSize = (size + pageSize - 1) & ~(pageSize - 1);
+	  const size_t pageSize = largePageMinimum;
+	  const size_t lpSize = (size + pageSize - 1) & ~(pageSize - 1);
     ptr = VirtualAlloc(NULL, lpSize,
         MEM_COMMIT | MEM_RESERVE | MEM_LARGE_PAGES, PAGE_READWRITE);
   } else

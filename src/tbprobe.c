@@ -110,7 +110,7 @@ static int tbNumPiece, tbNumPawn;
 static int numWdl, numDtm, numDtz;
 
 static struct PieceEntry *pieceEntry;
-static struct PawnEntry *pawnEntry;
+static PawnEntry *pawnEntry;
 static struct TbHashEntry tbHash[1 << TB_HASHBITS];
 
 static void init_indices(void);
@@ -118,7 +118,7 @@ static void init_indices(void);
 // Given a position, produce a text string of the form KQPvKRP, where
 // "KQP" represents the white pieces if flip == false and the black pieces
 // if flip == true.
-static void prt_str(Position *pos, char *str, bool flip)
+static void prt_str(const Position *pos, char *str, bool flip)
 {
   Color color = !flip ? WHITE : BLACK;
 
@@ -137,11 +137,11 @@ static void prt_str(Position *pos, char *str, bool flip)
 // defined by pcs[16], where pcs[1], ..., pcs[6] are the number of white
 // pawns, ..., kings and pcs[9], ..., pcs[14] are the number of black
 // pawns, ..., kings.
-static Key calc_key_from_pcs(int *pcs, bool flip)
+static Key calc_key_from_pcs(const int *pcs, bool flip)
 {
   Key key = 0;
 
-  int color = !flip ? 0 : 8;
+  const int color = !flip ? 0 : 8;
   for (int i = W_PAWN; i <= B_KING; i++)
     key += matKey[i] * pcs[i ^ color];
 
@@ -151,7 +151,7 @@ static Key calc_key_from_pcs(int *pcs, bool flip)
 // Produce a 64-bit material key corresponding to the material combination
 // piece[0], ..., piece[num - 1], where each value corresponds to a piece
 // (1-6 for white pawn-king, 9-14 for black pawn-king).
-static Key calc_key_from_pieces(uint8_t *piece, int num)
+static Key calc_key_from_pieces(const uint8_t *piece, const int num)
 {
   Key key = 0;
 
@@ -164,24 +164,23 @@ static Key calc_key_from_pieces(uint8_t *piece, int num)
 
 static FD open_tb(const char *str, const char *suffix)
 {
-  char name[256];
-
-  for (int i = 0; i < numPaths; i++) {
-    strcpy(name, paths[i]);
-    strcat(name, "/");
-    strcat(name, str);
-    strcat(name, suffix);
-    FD fd = open_file(name);
-    if (fd != FD_ERR) return fd;
-  }
-  return FD_ERR;
+	for (int i = 0; i < numPaths; i++) {
+		char name[256];
+		strcpy(name, paths[i]);
+	    strcat(name, "/");
+	    strcat(name, str);
+	    strcat(name, suffix);
+	    const FD fd = open_file(name);
+	    if (fd != FD_ERR) return fd;
+	  }
+	  return FD_ERR;
 }
 
 static bool test_tb(const char *str, const char *suffix)
 {
   FD fd = open_tb(str, suffix);
   if (fd != FD_ERR) {
-    size_t size = file_size(fd);
+	  const size_t size = file_size(fd);
     close_file(fd);
     if ((size & 63) != 16) {
       fprintf(stderr, "Incomplete tablebase file %s.%s\n", str, suffix);
@@ -194,7 +193,7 @@ static bool test_tb(const char *str, const char *suffix)
 
 static const void *map_tb(const char *name, const char *suffix, map_t *mapping)
 {
-  FD fd = open_tb(name, suffix);
+	const FD fd = open_tb(name, suffix);
   if (fd == FD_ERR)
     return NULL;
 
@@ -209,11 +208,9 @@ static const void *map_tb(const char *name, const char *suffix, map_t *mapping)
   return data;
 }
 
-static void add_to_hash(void *ptr, Key key)
+static void add_to_hash(void *ptr, const Key key)
 {
-  int idx;
-
-  idx = key >> (64 - TB_HASHBITS);
+	int idx = key >> (64 - TB_HASHBITS);
   while (tbHash[idx].ptr)
     idx = (idx + 1) & ((1 << TB_HASHBITS) - 1);
 
@@ -222,7 +219,7 @@ static void add_to_hash(void *ptr, Key key)
 }
 
 #define pchr(i) PieceToChar[QUEEN - (i)]
-#define Swap(a,b) {int tmp=a;a=b;b=tmp;}
+#define Swap(a,b) {int tmp=a;(a)=b;b=tmp;}
 
 static void init_tb(char *str)
 {
@@ -243,8 +240,8 @@ static void init_tb(char *str)
           break;
         }
 
-  Key key = calc_key_from_pcs(pcs, false);
-  Key key2 = calc_key_from_pcs(pcs, true);
+  const Key key = calc_key_from_pcs(pcs, false);
+  const Key key2 = calc_key_from_pcs(pcs, true);
 
   bool hasPawns = pcs[W_PAWN] || pcs[B_PAWN];
 
@@ -305,8 +302,8 @@ static void free_tb_entry(struct BaseEntry *be)
   for (int type = 0; type < 3; type++) {
     if (atomic_load_explicit(&be->ready[type], memory_order_relaxed)) {
       unmap_file(be->data[type], be->mapping[type]);
-      int num = num_tables(be, type);
-      struct EncInfo *ei = first_ei(be, type);
+      const int num = num_tables(be, type);
+      const struct EncInfo *ei = first_ei(be, type);
       for (int t = 0; t < num; t++) {
         free(ei[t].precomp);
         if (type != DTZ)
@@ -332,7 +329,7 @@ void TB_release(void)
     free_tb_entry((struct BaseEntry *)&pawnEntry[i]);
 }
 
-void TB_init(char *path)
+void TB_init(const char *path)
 {
   if (!initialized) {
     init_indices();
@@ -791,7 +788,7 @@ INLINE size_t encode(int *p, struct EncInfo *ei, struct BaseEntry *be,
     }
   }
 
-  for (; k < n;) {
+  while (k < n) {
     int t = k + ei->norm[k];
     for (int i = k; i < t; i++)
       for (int j = i + 1; j < t; j++)
@@ -830,7 +827,7 @@ static NOINLINE size_t encode_pawn_r(int *p, struct EncInfo *ei,
 }
 
 // Count number of placements of k like pieces on n squares
-static size_t subfactor(size_t k, size_t n)
+static size_t subfactor(const size_t k, const size_t n)
 {
   size_t f = n;
   size_t l = 1;
@@ -842,18 +839,18 @@ static size_t subfactor(size_t k, size_t n)
   return f / l;
 }
 
-static size_t init_enc_info(struct EncInfo *ei, struct BaseEntry *be,
-    const uint8_t *tb, int shift, int t, const int enc)
+static size_t init_enc_info(struct EncInfo *ei, const struct BaseEntry *be,
+    const uint8_t *tb, const int shift, const int t, const int enc)
 {
-  bool morePawns = enc != PIECE_ENC && be->pawns[1] > 0;
+  const bool morePawns = enc != PIECE_ENC && be->pawns[1] > 0;
 
   for (int i = 0; i < be->num; i++) {
     ei->pieces[i] = (tb[i + 1 + morePawns] >> shift) & 0x0f;
     ei->norm[i] = 0;
   }
 
-  int order = (tb[0] >> shift) & 0x0f;
-  int order2 = morePawns ? (tb[1] >> shift) & 0x0f : 0x0f;
+  const int order = (tb[0] >> shift) & 0x0f;
+  const int order2 = morePawns ? (tb[1] >> shift) & 0x0f : 0x0f;
 
   int k = ei->norm[0] =  enc != PIECE_ENC ? be->pawns[0]
                        : be->kk_enc ? 2 : 3;
@@ -890,14 +887,14 @@ static size_t init_enc_info(struct EncInfo *ei, struct BaseEntry *be,
   return f;
 }
 
-static void calc_symLen(struct PairsData *d, uint32_t s, char *tmp)
+static void calc_symLen(struct PairsData *d, const uint32_t s, char *tmp)
 {
   const uint8_t *w = d->symPat + 3 * s;
-  uint32_t s2 = (w[2] << 4) | (w[1] >> 4);
+  const uint32_t s2 = (w[2] << 4) | (w[1] >> 4);
   if (s2 == 0x0fff)
     d->symLen[s] = 0;
   else {
-    uint32_t s1 = ((w[1] & 0xf) << 8) | w[0];
+	  const uint32_t s1 = ((w[1] & 0xf) << 8) | w[0];
     if (!tmp[s1]) calc_symLen(d, s1, tmp);
     if (!tmp[s2]) calc_symLen(d, s2, tmp);
     d->symLen[s] = d->symLen[s1] + d->symLen[s2] + 1;
@@ -905,8 +902,8 @@ static void calc_symLen(struct PairsData *d, uint32_t s, char *tmp)
   tmp[s] = 1;
 }
 
-static struct PairsData *setup_pairs(const uint8_t **ptr, size_t tb_size,
-    size_t *size, uint8_t *flags, int type)
+static struct PairsData *setup_pairs(const uint8_t **ptr, const size_t tb_size,
+    size_t *size, uint8_t *flags, const int type)
 {
   struct PairsData *d;
   const uint8_t *data = *ptr;
@@ -922,14 +919,14 @@ static struct PairsData *setup_pairs(const uint8_t **ptr, size_t tb_size,
     return d;
   }
 
-  uint8_t blockSize = data[1];
-  uint8_t idxBits = data[2];
-  uint32_t realNumBlocks = read_le_u32(&data[4]);
-  uint32_t numBlocks = realNumBlocks + data[3];
-  int maxLen = data[8];
-  int minLen = data[9];
-  int h = maxLen - minLen + 1;
-  uint32_t numSyms = read_le_u16(&data[10 + 2 * h]);
+  const uint8_t blockSize = data[1];
+  const uint8_t idxBits = data[2];
+  const uint32_t realNumBlocks = read_le_u32(&data[4]);
+  const uint32_t numBlocks = realNumBlocks + data[3];
+  const int maxLen = data[8];
+  const int minLen = data[9];
+  const int h = maxLen - minLen + 1;
+  const uint32_t numSyms = read_le_u16(&data[10 + 2 * h]);
   d = malloc(sizeof(*d) + h * sizeof(uint64_t) + numSyms);
   d->blockSize = blockSize;
   d->idxBits = idxBits;
@@ -939,7 +936,7 @@ static struct PairsData *setup_pairs(const uint8_t **ptr, size_t tb_size,
   d->minLen = minLen;
   *ptr = &data[12 + 2 * h + 3 * numSyms + (numSyms & 1)];
 
-  size_t num_indices = (tb_size + (1ULL << idxBits) - 1) >> idxBits;
+  const size_t num_indices = (tb_size + (1ULL << idxBits) - 1) >> idxBits;
   size[0] = 6ULL * num_indices;
   size[1] = 2ULL * numBlocks;
   size[2] = (size_t)realNumBlocks << blockSize;
@@ -1090,12 +1087,12 @@ static NOINLINE bool init_table(struct BaseEntry *be, const char *str, int type)
   return true;
 }
 
-static const uint8_t *decompress_pairs(struct PairsData *d, size_t idx)
+static const uint8_t *decompress_pairs(struct PairsData *d, const size_t idx)
 {
   if (!d->idxBits)
     return d->constValue;
 
-  uint32_t mainIdx = idx >> d->idxBits;
+  const uint32_t mainIdx = idx >> d->idxBits;
   int litIdx = (idx & (((size_t)1 << d->idxBits) - 1)) - ((size_t)1 << (d->idxBits - 1));
   uint32_t block;
   memcpy(&block, d->indexTable + 6 * mainIdx, sizeof(block));
@@ -1113,16 +1110,16 @@ static const uint8_t *decompress_pairs(struct PairsData *d, size_t idx)
 
   uint32_t *ptr = (uint32_t *)(d->data + ((size_t)block << d->blockSize));
 
-  int m = d->minLen;
+  const int m = d->minLen;
   const uint16_t *offset = d->offset;
-  uint64_t *base = d->base - m;
-  uint8_t *symLen = d->symLen;
-  uint32_t sym, bitCnt;
+  const uint64_t *base = d->base - m;
+  const uint8_t *symLen = d->symLen;
+  uint32_t sym;
 
   uint64_t code = from_be_u64(*(uint64_t *)ptr);
 
   ptr += 2;
-  bitCnt = 0; // number of "empty bits" in code
+  uint32_t bitCnt = 0; // number of "empty bits" in code
   for (;;) {
     int l = m;
     while (code < base[l]) l++;
@@ -1134,7 +1131,7 @@ static const uint8_t *decompress_pairs(struct PairsData *d, size_t idx)
     bitCnt += l;
     if (bitCnt >= 32) {
       bitCnt -= 32;
-      uint32_t tmp = from_be_u32(*ptr++);
+      const uint32_t tmp = from_be_u32(*ptr++);
       code |= (uint64_t)tmp << bitCnt;
     }
   }
@@ -1142,7 +1139,7 @@ static const uint8_t *decompress_pairs(struct PairsData *d, size_t idx)
   const uint8_t *symPat = d->symPat;
   while (symLen[sym] != 0) {
     const uint8_t *w = symPat + (3 * sym);
-    int s1 = ((w[1] & 0xf) << 8) | w[0];
+    const int s1 = ((w[1] & 0xf) << 8) | w[0];
     if (litIdx < (int)symLen[s1] + 1)
       sym = s1;
     else {
@@ -1305,21 +1302,21 @@ static NOINLINE int probe_dtz_table(Position *pos, int wdl, int *success)
 // Add missing underpromotion captures to list of captures.
 // generate_captures() generates all queen promotions and knight promotions
 // that give check.
-static ExtMove *add_underprom_caps(Position *pos, ExtMove *m, ExtMove *end)
+static ExtMove *add_underprom_caps(const Position *pos, ExtMove *m, ExtMove *end)
 {
   ExtMove *extra = end;
 
   for (; m < end; m++) {
-    Move move = m->move;
+	  const Move move = m->move;
     if (   type_of_m(move) == PROMOTION
         && promotion_type(move) == QUEEN
         && piece_on(to_sq(move)))
     {
-      (*extra++).move = (Move)(move - (1 << 12)); // ROOK
-      (*extra++).move = (Move)(move - (2 << 12)); // BISHOP
+      (*extra++).move = move - (1 << 12); // ROOK
+      (*extra++).move = move - (2 << 12); // BISHOP
       // Skip knight promotion if it was already generated
       if (m+1 == end || from_to((m+1)->move) != from_to(move))
-        (*extra++).move = (Move)(move - (3 << 12)); // KNIGHT
+        (*extra++).move = move - (3 << 12); // KNIGHT
     }
   }
 
@@ -1327,7 +1324,7 @@ static ExtMove *add_underprom_caps(Position *pos, ExtMove *m, ExtMove *end)
 }
 
 // probe_ab() is not called for positions with en passant captures.
-static int probe_ab(Position *pos, int alpha, int beta, int *success)
+static int probe_ab(Position *pos, int alpha, const int beta, int *success)
 {
   assert(ep_square() == 0);
 
@@ -1344,7 +1341,7 @@ static int probe_ab(Position *pos, int alpha, int beta, int *success)
     if (!is_capture(pos, move) || !is_legal(pos, move))
       continue;
     do_move(pos, move, gives_check(pos, pos->st, move));
-    int v = -probe_ab(pos, -beta, -alpha, success);
+    const int v = -probe_ab(pos, -beta, -alpha, success);
     undo_move(pos, move);
     if (*success == 0) return 0;
     if (v > alpha) {
@@ -1354,7 +1351,7 @@ static int probe_ab(Position *pos, int alpha, int beta, int *success)
     }
   }
 
-  int v = probe_wdl_table(pos, success);
+  const int v = probe_wdl_table(pos, success);
 
   return alpha >= v ? alpha : v;
 }
@@ -1396,7 +1393,7 @@ int TB_probe_wdl(Position *pos, int *success)
     if (!is_capture(pos, move) || !is_legal(pos, move))
       continue;
     do_move(pos, move, gives_check(pos, pos->st, move));
-    int v = -probe_ab(pos, -2, -bestCap, success);
+    const int v = -probe_ab(pos, -2, -bestCap, success);
     undo_move(pos, move);
     if (*success == 0) return 0;
     if (v > bestCap) {
@@ -1411,7 +1408,7 @@ int TB_probe_wdl(Position *pos, int *success)
     }
   }
 
-  int v = probe_wdl_table(pos, success);
+  const int v = probe_wdl_table(pos, success);
   if (*success == 0) return 0;
 
   // Now max(v, bestCap) is the WDL value of the position without ep rights.
@@ -1442,14 +1439,14 @@ int TB_probe_wdl(Position *pos, int *success)
   if (bestEp > -3 && v == 0) {
     // Check for stalemate in the position with ep captures.
     for (m = (pos->st-1)->endMoves; m < end; m++) {
-      Move move = m->move;
+	    const Move move = m->move;
       if (type_of_m(move) == ENPASSANT) continue;
       if (is_legal(pos, move)) break;
     }
     if (m == end && !checkers()) {
       end = generate_quiets(pos, end);
       for (; m < end; m++) {
-        Move move = m->move;
+	      const Move move = m->move;
         if (is_legal(pos, move))
           break;
       }
@@ -1515,9 +1512,10 @@ static Value probe_dtm_loss(Position *pos, int *success)
   Value v, best = -VALUE_INFINITE, numEp = 0;
 
   // Generate at least all legal captures including (under)promotions
-  ExtMove *end, *m = (pos->st-1)->endMoves;
-  end = checkers() ? generate_evasions(pos, m)
-                   : add_underprom_caps(pos, m, generate_captures(pos, m));
+  ExtMove*m = (pos->st-1)->endMoves;
+  ExtMove* end = checkers()
+	                 ? generate_evasions(pos, m)
+	                 : add_underprom_caps(pos, m, generate_captures(pos, m));
   pos->st->endMoves = end;
 
   for (; m < end; m++) {
@@ -1573,7 +1571,7 @@ static Value probe_dtm_win(Position *pos, int *success)
   return best;
 }
 
-Value TB_probe_dtm(Position *pos, int wdl, int *success)
+Value TB_probe_dtm(Position *pos, const int wdl, int *success)
 {
   assert(wdl != 0);
 
@@ -1705,7 +1703,7 @@ int TB_probe_dtz(Position *pos, int *success)
                 || !is_legal(pos, move))
         continue;
       do_move(pos, move, gives_check(pos, pos->st, move));
-      int v = -TB_probe_wdl(pos, success);
+      const int v = -TB_probe_wdl(pos, success);
       undo_move(pos, move);
       if (*success == 0) return 0;
       if (v == wdl)
@@ -1718,7 +1716,7 @@ int TB_probe_dtz(Position *pos, int *success)
   // the position without ep rights. It is therefore safe to probe the
   // DTZ table with the current value of wdl.
 
-  int dtz = probe_dtz_table(pos, wdl, success);
+  const int dtz = probe_dtz_table(pos, wdl, success);
   if (*success >= 0)
     return WdlToDtz[wdl + 2] + ((wdl > 0) ? dtz : -dtz);
 
@@ -1750,7 +1748,7 @@ int TB_probe_dtz(Position *pos, int *success)
               || !is_legal(pos, move))
       continue;
     do_move(pos, move, gives_check(pos, pos->st, move));
-    int v = -TB_probe_dtz(pos, success);
+    const int v = -TB_probe_dtz(pos, success);
     if (   v == 1
         && checkers()
         && generate_legal(pos, (pos->st-1)->endMoves) == (pos->st-1)->endMoves)
@@ -1775,16 +1773,16 @@ bool TB_root_probe_dtz(Position *pos, RootMoves *rm)
   int v, success;
 
   // Obtain 50-move counter for the root position.
-  int cnt50 = rule50_count();
+  const int cnt50 = rule50_count();
 
   // Check whether a position was repeated since the last zeroing move.
   // In that case, we need to be careful and play DTZ-optimal moves if
   // winning.
-  bool rep = pos->hasRepeated;
+  const bool rep = pos->hasRepeated;
 
   // The border between draw and win lies at rank 1 or rank 900, depending
   // on whether the 50-move rule is used.
-  int bound = option_value(OPT_SYZ_50_MOVE) ? 900 : 1;
+  const int bound = option_value(OPT_SYZ_50_MOVE) ? 900 : 1;
 
   // Probe, rank and score each move.
   pos->st->endMoves = (pos->st-1)->endMoves;
@@ -1817,9 +1815,9 @@ bool TB_root_probe_dtz(Position *pos, RootMoves *rm)
     // Note that moves ranked 900 have dtz + cnt50 == 100, which in rare
     // cases may be insufficient to win as dtz may be one off (see the
     // comments before TB_probe_dtz()).
-    int r =  v > 0 ? (v + cnt50 <= 99 && !rep ? 1000 : 1000 - (v + cnt50))
-           : v < 0 ? (-v * 2 + cnt50 < 100 ? -1000 : -1000 + (-v + cnt50))
-           : 0;
+    const int r =  v > 0 ? (v + cnt50 <= 99 && !rep ? 1000 : 1000 - (v + cnt50))
+	                   : v < 0 ? (-v * 2 + cnt50 < 100 ? -1000 : -1000 + (-v + cnt50))
+	                   : 0;
     m->tbRank = r;
 
     // Determine the score to be displayed for this move. Assign at least
@@ -1849,15 +1847,15 @@ bool TB_root_probe_wdl(Position *pos, RootMoves *rm)
     VALUE_MATE - MAX_MATE_PLY - 1
   };
 
-  int v, success;
-  int move50 = option_value(OPT_SYZ_50_MOVE);
+  int success;
+  const int move50 = option_value(OPT_SYZ_50_MOVE);
 
   // Probe, rank and score each move.
   pos->st->endMoves = (pos->st-1)->endMoves;
   for (int i = 0; i < rm->size; i++) {
     RootMove *m = &rm->move[i];
     do_move(pos, m->pv[0], gives_check(pos, pos->st, m->pv[0]));
-    v = -TB_probe_wdl(pos, &success);
+    int v = -TB_probe_wdl(pos, &success);
     undo_move(pos, m->pv[0]);
     if (!success) return false;
     if (!move50)
@@ -1883,15 +1881,15 @@ bool TB_root_probe_dtm(Position *pos, RootMoves *rm)
     RootMove *m = &rm->move[i];
 
     // Use tbScore to find out if the position is won or lost.
-    int wdl =  m->tbScore >  PawnValueEg ?  2
-             : m->tbScore < -PawnValueEg ? -2 : 0;
+    const int wdl =  m->tbScore >  PawnValueEg ?  2
+	                     : m->tbScore < -PawnValueEg ? -2 : 0;
 
     if (wdl == 0)
       tmpScore[i] = 0;
     else {
       // Probe and adjust mate score by 1 ply.
       do_move(pos, m->pv[0], gives_check(pos, pos->st, m->pv[0]));
-      Value v = -TB_probe_dtm(pos, -wdl, &success);
+      const Value v = -TB_probe_dtm(pos, -wdl, &success);
       tmpScore[i] = wdl > 0 ? v - 1 : v + 1;
       undo_move(pos, m->pv[0]);
       if (success == 0)

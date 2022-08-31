@@ -336,7 +336,7 @@ void pb_init(PolyBook *pb, const char *bookfile)
 
   pb_release(pb);
 
-  FD fd = open_file(bookfile);
+  const FD fd = open_file(bookfile);
   if (fd != FD_ERR) {
     pb->keycount = file_size(fd) / 16;
     pb->polyhash = map_file(fd, &pb->mapping);
@@ -360,7 +360,7 @@ void pb_set_best_book_move(bool best_book_move)
   useBestBookMove = best_book_move;
 }
 
-void pb_set_book_depth(int book_depth)
+void pb_set_book_depth(const int book_depth)
 {
   maxBookDepth = book_depth;
 }
@@ -375,9 +375,9 @@ Move pb_probe(PolyBook *pb, Position *pos)
   if (pb->book_depth_count >= maxBookDepth)
     return m1;
 
-  Key key = polyglot_key(pos);
+  const Key key = polyglot_key(pos);
 
-  int n = find_first_key(pb, key);
+  const int n = find_first_key(pb, key);
 
   if (n < 1) {
     pb->search_counter++;
@@ -409,7 +409,7 @@ Move pb_probe(PolyBook *pb, Position *pos)
   ssize_t idx2 = pb->index_first;
   if (idx1 == idx2) idx2++;
 
-  Move m2 = pg_move_to_sf_move(pos, from_be_u16(pb->polyhash[idx2].move));
+  const Move m2 = pg_move_to_sf_move(pos, from_be_u16(pb->polyhash[idx2].move));
 
   if (!check_draw(pos, m2))
     return m2;
@@ -423,8 +423,8 @@ static Key polyglot_key(const Position *pos)
   Bitboard b = pieces();
 
   while (b) {
-    Square s = pop_lsb(&b);
-    Piece p = piece_on(s);
+	  const Square s = pop_lsb(&b);
+	  const Piece p = piece_on(s);
 
     // PolyGlot pieces are: BP = 0, WP = 1, BN = 2, ... BK = 10, WK = 11
     key ^= PG.Zobrist.psq[2 * (type_of_p(p) - 1) + (color_of(p) == WHITE)][s];
@@ -460,18 +460,17 @@ static Key polyglot_key(const Position *pos)
 // bit  6-11: origin square (from 0 to 63)
 // bit 12-13: promotion piece type - 2 (from KNIGHT-2 to QUEEN-2)
 // bit 14-15: special move flag: promotion (1), en passant (2), castling (3)
-static Move pg_move_to_sf_move(const Position *pos, uint16_t pg_move)
+static Move pg_move_to_sf_move(const Position *pos, const uint16_t pg_move)
 {
-  Move move = (Move)pg_move;
+	const Move move = pg_move;
 
-  int pt = (move >> 12) & 7;
+	const int pt = (move >> 12) & 7;
   if (pt)
     return make_promotion(from_sq(move), to_sq(move), pt + 1);
 
   // Add 'special move' flags and verify it is legal
   ExtMove *m = (pos->st-1)->endMoves;
-  ExtMove *end = generate_legal(pos, m);
-  for (; m < end; m++)
+	for (const ExtMove *end = generate_legal(pos, m); m < end; m++)
     if (move == (m->move & (~(3 << 14)))) //  Compare with MoveType (bit 14-15)  masked out
       return m->move;
 
@@ -560,7 +559,7 @@ static bool check_do_search(PolyBook *pb, const Position *pos)
   pb->akt_anz_pieces = popcount(pb->akt_position);
 
   Bitboard b = pb->akt_position ^ pb->last_position;
-  int n2 = popcount(b);
+  const int n2 = popcount(b);
 
   bool pos_changed =   n2 > 6
                     || pb->akt_position == pb->last_position

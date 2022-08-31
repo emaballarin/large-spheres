@@ -38,9 +38,10 @@ void process_delayed_settings(void)
   }
 
   if (numaChange || ttChange || lpChange) {
+    tt_free();
     settings.largePages = delayedSettings.largePages;
     settings.ttSize = delayedSettings.ttSize;
-    tt_reallocate(settings.ttSize);
+    tt_allocate(settings.ttSize);
   }
 
   if (delayedSettings.clear) {

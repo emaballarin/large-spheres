@@ -44,19 +44,16 @@ int TB_Cardinality, TB_CardinalityDTM;
 static bool TB_RootInTB, TB_UseRule50;
 static Depth TB_ProbeDepth;
 
-static int base_ct;
-
 // Different node types, used as template parameter
 enum { NonPV, PV };
 
 INLINE int futility_margin(Depth d, bool improving) {
-  return 214 * (d - improving);
+  return 168 * (d - improving);
 }
 
 // Check if the current thread is in a search explosion
 int search_explosion(Position* thisThread) {
-
-  uint64_t nodesNow = thisThread->nodes;
+	const uint64_t nodesNow = thisThread->nodes;
   bool explosive =    RunningAverage_is_greater(&(thisThread->doubleExtensionAverage[WHITE]), 2, 100)
                    || RunningAverage_is_greater(&(thisThread->doubleExtensionAverage[BLACK]), 2, 100);
 
@@ -93,15 +90,15 @@ INLINE int futility_move_count(bool improving, Depth depth)
 }
 
 // History and stats update bonus, based on depth
-static Value stat_bonus(Depth depth)
+static Value stat_bonus(const Depth depth)
 {
-  int d = depth;
-  return min((6 * d + 229) * d - 215 , 2000);
+	const int d = depth;
+  return min((9 * d + 270) * d - 311 , 2145);
 }
 
 // Add a small random component to draw evaluations to keep search dynamic
 // and to avoid three-fold blindness. (Yucks, ugly hack)
-static Value value_draw(Position *pos)
+static Value value_draw(const Position *pos)
 {
   return VALUE_DRAW + 2 * (pos->nodes & 1) - 1;
 }
@@ -140,8 +137,8 @@ static Value value_from_tt(Value v, int ply, int r50c);
 static void update_pv(Move *pv, Move move, Move *childPv);
 static void update_cm_stats(Stack *ss, Piece pc, Square s, int bonus);
 static void update_quiet_stats(const Position *pos, Stack *ss, Move move,
-    int bonus);
-static void update_capture_stats(const Position *pos, Move move, Move *captures,
+    int bonus, Depth depth);
+static void update_capture_stats(const Position *pos, Move move, const Move *captures,
     int captureCnt, int bonus);
 static void check_time(void);
 static void stable_sort(RootMove *rm, int num);
@@ -153,7 +150,7 @@ static int extract_ponder_from_tt(RootMove *rm, Position *pos);
 void search_init(void)
 {
   for (int i = 1; i < MAX_MOVES; i++)
-    Reductions[i] = (21.9 + log((double)Threads.numThreads) / 2.0) * log(i);
+    Reductions[i] = (21.9 + log(Threads.numThreads) / 2.0) * log(i);
 }
 
 
@@ -180,10 +177,11 @@ void search_clear(void)
     }
 
   for (int idx = 0; idx < Threads.numThreads; idx++) {
-    Position *pos = Threads.pos[idx];
+    const Position *pos = Threads.pos[idx];
     stats_clear(pos->counterMoves);
     stats_clear(pos->mainHistory);
     stats_clear(pos->captureHistory);
+    stats_clear(pos->lowPlyHistory);
   }
 
   TB_release();
@@ -205,8 +203,7 @@ INLINE uint64_t perft_node(Position *pos, Depth depth, const bool Root)
   const bool leaf = (depth == 2);
 
   ExtMove *m = Root ? pos->moveList : (pos->st-1)->endMoves;
-  ExtMove *last = pos->st->endMoves = generate_legal(pos, m);
-  for (; m < last; m++) {
+  for (ExtMove *last = pos->st->endMoves = generate_legal(pos, m); m < last; m++) {
     if (Root && depth <= 1) {
       cnt = 1;
       nodes++;
@@ -242,7 +239,7 @@ NOINLINE uint64_t perft(Position *pos, Depth depth)
 void mainthread_search(void)
 {
   Position *pos = Threads.pos[0];
-  Color us = stm();
+  const Color us = stm();
   time_init(us, game_ply());
   tt_new_search();
   char buf[16];
@@ -275,7 +272,7 @@ void mainthread_search(void)
 
     for (int i = 0; i < pos->rootMoves->size; i++)
       if (pos->rootMoves->move[i].pv[0] == bookMove) {
-        RootMove tmp = pos->rootMoves->move[0];
+	    const RootMove tmp = pos->rootMoves->move[0];
         pos->rootMoves->move[0] = pos->rootMoves->move[i];
         pos->rootMoves->move[i] = tmp;
         playBookMove = true;
@@ -345,8 +342,8 @@ void mainthread_search(void)
     for (int idx = 1; idx < Threads.numThreads; idx++)
       minScore = min(minScore, Threads.pos[idx]->rootMoves->move[0].score);
     for (int idx = 0; idx < Threads.numThreads; idx++) {
-      Position *p = Threads.pos[idx];
-      Move m = p->rootMoves->move[0].pv[0];
+	  const Position *p = Threads.pos[idx];
+      const Move m = p->rootMoves->move[0].pv[0];
       for (i = 0; i < num; i++)
         if (mvs[i] == m) break;
       if (i == num) {
@@ -383,8 +380,6 @@ void mainthread_search(void)
                  -VALUE_INFINITE, VALUE_INFINITE);
 
   flockfile(stdout);
-  if (option_value(OPT_ANARCHY) && ep_square() != 0)
-    printf("info string Holy hell!\n");
   printf("bestmove %s", uci_move(buf, bestThread->rootMoves->move[0].pv[0], is_chess960()));
 
   if (bestThread->rootMoves->move[0].pvSize > 1 || extract_ponder_from_tt(&bestThread->rootMoves->move[0], pos))
@@ -403,7 +398,7 @@ void mainthread_search(void)
 
 void thread_search(Position *pos)
 {
-  Value bestValue, alpha, beta, delta;
+  Value alpha, delta;
   Move pv[MAX_PLY + 1];
   Move lastBestMove = 0;
   Depth lastBestMoveDepth = 0;
@@ -427,8 +422,8 @@ void thread_search(Position *pos)
     ss[i].ply = i;
   ss->pv = pv;
 
-  bestValue = delta = alpha = -VALUE_INFINITE;
-  beta = VALUE_INFINITE;
+  Value bestValue = delta = alpha = -VALUE_INFINITE;
+  Value beta = VALUE_INFINITE;
   pos->completedDepth = 0;
 
   if (pos->threadIdx == 0) {
@@ -439,6 +434,10 @@ void thread_search(Position *pos)
       for (int i = 0; i < 4; i++)
         mainThread.iterValue[i] = mainThread.previousScore;
   }
+
+  memmove(&((*pos->lowPlyHistory)[0]), &((*pos->lowPlyHistory)[2]),
+      (MAX_LPH - 2) * sizeof((*pos->lowPlyHistory)[0]));
+  memset(&((*pos->lowPlyHistory)[MAX_LPH - 2]), 0, 2 * sizeof((*pos->lowPlyHistory)[0]));
 
   int multiPV = option_value(OPT_MULTI_PV);
 #if 0
@@ -508,17 +507,17 @@ void thread_search(Position *pos)
 
       // Reset aspiration window starting size
       if (pos->rootDepth >= 4) {
-        Value previousScore = rm->move[pvIdx].averageScore;
+	      const Value previousScore = rm->move[pvIdx].averageScore;
         delta = 17+ (int)previousScore * previousScore / 16384;
         alpha = max(previousScore - delta, -VALUE_INFINITE);
         beta  = min(previousScore + delta,  VALUE_INFINITE);
 
         // Adjust trend and optimism based on root move's previousScore
-        int tr = sigmoid(previousScore, 0, 0, 147, 113, 1);
+	    const int tr = sigmoid(previousScore, 0, 0, 147, 113, 1);
         pos->trend = stm() == WHITE ?  make_score(tr, tr / 2)
                                     : -make_score(tr, tr / 2);
 
-        int opt = sigmoid(previousScore, 0, 25, 147, 14464, 256);
+	    const int opt = sigmoid(previousScore, 0, 25, 147, 14464, 256);
         pos->optimism[  stm()] = (Value)opt;
         pos->optimism[1-stm()] = -pos->optimism[stm()];
       }
@@ -528,7 +527,7 @@ void thread_search(Position *pos)
       // high/low anymore.
       int failedHighCnt = 0;
       while (true) {
-        Depth adjustedDepth = max(1, pos->rootDepth - failedHighCnt - searchAgainCounter);
+	    const Depth adjustedDepth = max(1, pos->rootDepth - failedHighCnt - searchAgainCounter);
         bestValue = search_PV(pos, ss, alpha, beta, adjustedDepth);
 
         // Bring the best move to the front. It is critical that sorting
@@ -623,7 +622,7 @@ skip_search:
       // If the best move is stable over several iterations, reduce time
       // accordingly
       timeReduction = lastBestMoveDepth + 9 < pos->completedDepth ? 1.92 : 0.95;
-      double reduction = (1.47 + mainThread.previousTimeReduction) / (2.32 * timeReduction);
+      const double reduction = (1.47 + mainThread.previousTimeReduction) / (2.32 * timeReduction);
 
       double bestMoveInstability = 1.073 + max(1.0, 2.25 - 9.9 / pos->rootDepth)
                                           * totBestMoveChanges / Threads.numThreads;
@@ -806,6 +805,13 @@ INLINE Value search_node(Position *pos, Stack *ss, Value alpha, Value beta,
   if (!excludedMove)
     ss->ttPv = PvNode || (ss->ttHit && tte_is_pv(tte));
 
+  if (   ss->ttPv
+      && depth > 12
+      && ss->ply - 1 < MAX_LPH
+      && !captured_piece()
+      && move_is_ok((ss-1)->currentMove))
+    lph_update(*pos->lowPlyHistory, ss->ply - 1, (ss-1)->currentMove, stat_bonus(depth - 5));
+
   // At non-PV nodes we check for an early TT cutoff.
   if (  !PvNode
       && ss->ttHit
@@ -818,7 +824,7 @@ INLINE Value search_node(Position *pos, Stack *ss, Value alpha, Value beta,
     if (ttMove) {
       if (ttValue >= beta) {
         if (!ttCapture)
-          update_quiet_stats(pos, ss, ttMove, stat_bonus(depth));
+          update_quiet_stats(pos, ss, ttMove, stat_bonus(depth), depth);
 
         // Extra penalty for early quiet moves of the previous ply
         if ((ss-1)->moveCount <= 2 && !captured_piece())
@@ -1478,7 +1484,7 @@ moves_loop: // When in check search starts from here
       int bonus =  bestValue > beta + PawnValueMg
                  ? stat_bonus(depth + 1)
                  : stat_bonus(depth);
-      update_quiet_stats(pos, ss, bestMove, bonus);
+      update_quiet_stats(pos, ss, bestMove, bonus, depth);
 
       // Decrease all the other played quiet moves
       for (int i = 0; i < quietCount; i++) {
@@ -1776,13 +1782,13 @@ static NOINLINE Value qsearch_NonPV_false(Position *pos, Stack *ss, Value alpha,
 
 // stable_sort() sorts RootMoves from highest-scoring move to lowest-scoring
 // move while preserving order of equal elements.
-static void stable_sort(RootMove *rm, int num)
+static void stable_sort(RootMove *rm, const int num)
 {
-  int i, j;
+  int j;
 
-  for (i = 1; i < num; i++)
+  for (int i = 1; i < num; i++)
     if (rm_lt(rm[i - 1], rm[i])) {
-      RootMove tmp = rm[i];
+	  const RootMove tmp = rm[i];
       rm[i] = rm[i - 1];
       for (j = i - 1; j > 0 && rm_lt(rm[j - 1], tmp); j--)
         rm[j] = rm[j - 1];
@@ -1794,7 +1800,7 @@ static void stable_sort(RootMove *rm, int num)
 // "plies to mate from the current position". Non-mate scores are unchanged.
 // The function is called before storing a value in the transposition table.
 
-static Value value_to_tt(Value v, int ply)
+static Value value_to_tt(const Value v, const int ply)
 {
   assert(v != VALUE_NONE);
 
@@ -1807,7 +1813,7 @@ static Value value_to_tt(Value v, int ply)
 // from the transposition table (which refers to the plies to mate/be mated
 // from current position) to "plies to mate/be mated from the root".
 
-static Value value_from_tt(Value v, int ply, int r50c)
+static Value value_from_tt(const Value v, const int ply, const int r50c)
 {
   if (v == VALUE_NONE)
     return VALUE_NONE;
@@ -1830,7 +1836,7 @@ static Value value_from_tt(Value v, int ply, int r50c)
 
 // update_pv() adds current move and appends child pv[]
 
-static void update_pv(Move *pv, Move move, Move *childPv)
+static void update_pv(Move *pv, const Move move, Move *childPv)
 {
   for (*pv++ = move; childPv && *childPv; )
     *pv++ = *childPv++;
@@ -1861,8 +1867,8 @@ static void update_cm_stats(Stack *ss, Piece pc, Square s, int bonus)
 // update_capture_stats() updates move sorting heuristics when a new capture
 // best move is found
 
-static void update_capture_stats(const Position *pos, Move move, Move *captures,
-    int captureCnt, int bonus)
+static void update_capture_stats(const Position *pos, Move move, const Move *captures,
+	const int captureCnt, int bonus)
 {
   Piece moved_piece = moved_piece(move);
   int captured = type_of_p(piece_on(to_sq(move)));
@@ -1882,7 +1888,7 @@ static void update_capture_stats(const Position *pos, Move move, Move *captures,
 // plus follow-up move history when a new quiet best move is found.
 
 static void update_quiet_stats(const Position *pos, Stack *ss, Move move,
-    int bonus)
+    int bonus, const Depth depth)
 {
   if (ss->killers[0] != move) {
     ss->killers[1] = ss->killers[0];
@@ -1894,9 +1900,12 @@ static void update_quiet_stats(const Position *pos, Stack *ss, Move move,
   update_cm_stats(ss, moved_piece(move), to_sq(move), bonus);
 
   if (move_is_ok((ss-1)->currentMove)) {
-    Square prevSq = to_sq((ss-1)->currentMove);
+	const Square prevSq = to_sq((ss-1)->currentMove);
     (*pos->counterMoves)[piece_on(prevSq)][prevSq] = move;
   }
+
+  if (depth > 11 && ss->ply < MAX_LPH)
+    lph_update(*pos->lowPlyHistory, ss->ply, move, stat_bonus(depth - 7));
 }
 
 #if 0
@@ -1940,7 +1949,7 @@ static void update_quiet_stats(const Position *pos, Stack *ss, Move move,
 
 static void check_time(void)
 {
-  TimePoint elapsed = time_elapsed();
+	const TimePoint elapsed = time_elapsed();
 
   // An engine may not stop pondering until told so by the GUI
   if (Threads.ponder)
@@ -1958,22 +1967,22 @@ static void check_time(void)
 
 static void uci_print_pv(Position *pos, Depth depth, Value alpha, Value beta)
 {
-  TimePoint elapsed = time_elapsed() + 1;
+  const TimePoint elapsed = time_elapsed() + 1;
   RootMoves *rm = pos->rootMoves;
-  int pvIdx = pos->pvIdx;
+  const int pvIdx = pos->pvIdx;
   int multiPV = min(option_value(OPT_MULTI_PV), rm->size);
-  uint64_t nodes_searched = threads_nodes_searched();
-  uint64_t tbhits = threads_tb_hits();
-  char buf[16];
+  const uint64_t nodes_searched = threads_nodes_searched();
+  const uint64_t tbhits = threads_tb_hits();
 
-  flockfile(stdout);
+	flockfile(stdout);
   for (int i = 0; i < multiPV; i++) {
-    bool updated = rm->move[i].score != -VALUE_INFINITE;
+	  char buf[16];
+	  bool updated = rm->move[i].score != -VALUE_INFINITE;
 
     if (depth == 1 && !updated && i > 0)
       continue;
 
-    Depth d = updated ? depth : max(1, depth - 1);
+    const Depth d = updated ? depth : max(1, depth - 1);
     Value v = updated ? rm->move[i].score : rm->move[i].previousScore;
 
     if (v == -VALUE_INFINITE)
@@ -2036,7 +2045,7 @@ static int extract_ponder_from_tt(RootMove *rm, Position *pos)
   if (ttHit) {
     Move m = tte_move(tte); // Local copy to be SMP safe
     ExtMove list[MAX_MOVES];
-    ExtMove *last = generate_legal(pos, list);
+    const ExtMove *last = generate_legal(pos, list);
     for (ExtMove *p = list; p < last; p++)
       if (p->move == m) {
         rm->pv[rm->pvSize++] = m;
@@ -2111,7 +2120,7 @@ void start_thinking(Position *root, bool ponderMode)
 
   // Generate all legal moves.
   ExtMove list[MAX_MOVES];
-  ExtMove *end = generate_legal(root, list);
+  const ExtMove *end = generate_legal(root, list);
 
   // Implement searchmoves option.
   if (Limits.numSearchmoves) {

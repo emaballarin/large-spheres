@@ -71,10 +71,10 @@ INLINE bool is_KQKRPs(const Position *pos, int us) {
 
 // imbalance() calculates the imbalance by comparing the piece count of each
 // piece type for both colors.
-static Score imbalance(int us, int pieceCount[][8])
+static Score imbalance(const int us, int pieceCount[][8])
 {
-  int *pc_us = pieceCount[us];
-  int *pc_them = pieceCount[!us];
+	const int *pc_us = pieceCount[us];
+	const int *pc_them = pieceCount[!us];
   Score bonus = SCORE_ZERO;
 
   // Second-degree polynomial material imbalance, by Tord Romstad
@@ -102,14 +102,14 @@ typedef int PieceCountType[2][8];
 // there, so we don't have to recompute all when the same material
 // configuration occurs again.
 
-void material_entry_fill(const Position *pos, MaterialEntry *e, Key key)
+void material_entry_fill(const Position *pos, MaterialEntry *e, const Key key)
 {
   memset(e, 0, sizeof(MaterialEntry));
   e->key = key;
   e->factor[WHITE] = e->factor[BLACK] = (uint8_t)SCALE_FACTOR_NORMAL;
 
-  Value npm_w = non_pawn_material_c(WHITE);
-  Value npm_b = non_pawn_material_c(BLACK);
+  const Value npm_w = non_pawn_material_c(WHITE);
+  const Value npm_b = non_pawn_material_c(BLACK);
   Value npm = clamp(npm_w + npm_b, EndgameLimit, MidgameLimit);
   e->gamePhase = ((npm - EndgameLimit) * PHASE_MIDGAME) / (MidgameLimit - EndgameLimit);
 

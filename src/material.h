@@ -47,7 +47,7 @@ struct MaterialEntry {
   uint8_t factor[2];
 };
 
-typedef struct MaterialEntry MaterialEntry;
+typedef MaterialEntry MaterialEntry;
 
 typedef MaterialEntry MaterialTable[8192];
 

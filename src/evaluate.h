@@ -3,7 +3,9 @@
 
 #include "types.h"
 
-#define DefaultEvalFile "fat_titz.nnue"
+#define DefaultEvalFile "big_ballz.nnue"
+
+enum { Tempo = 28 };
 
 #ifdef NNUE
 enum { EVAL_HYBRID, EVAL_PURE, EVAL_CLASSICAL };

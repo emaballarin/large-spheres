@@ -30,6 +30,8 @@
 #include "timeman.h"
 #include "uci.h"
 
+#include "nnue.h"
+
 extern void benchmark(Position *pos, char *str);
 
 // FEN string of the initial position, normal chess
@@ -41,12 +43,11 @@ static const char StartFEN[] =
 // string ("fen") or the starting position ("startpos") and then makes
 // the moves given in the following move list ("moves").
 
-void position(Position *pos, char *str)
+void position(Position *pos, const char *str)
 {
   char fen[128];
-  char *moves;
 
-  moves = strstr(str, "moves");
+  char* moves = strstr(str, "moves");
   if (moves) {
     if (moves > str) moves[-1] = 0;
     moves += 5;
@@ -88,8 +89,7 @@ void position(Position *pos, char *str)
 
     // Now move some of the game history at the end of the circular buffer
     // in front of that buffer.
-    int k = (pos->st - (pos->stack + 100)) - max(7, pos->st->pliesFromNull);
-    for (; k < 0; k++)
+    for (int k = (pos->st - (pos->stack + 100)) - max(7, pos->st->pliesFromNull); k < 0; k++)
       memcpy(pos->stack + 100 + k, pos->stack + 200 + k, StateSize);
   }
 
@@ -120,11 +120,9 @@ void position(Position *pos, char *str)
 // command. The function updates the UCI option ("name") to the given
 // value ("value").
 
-void setoption(char *str)
+void setoption(const char *str)
 {
-  char *name, *value;
-
-  name = strstr(str, "name");
+	char* name = strstr(str, "name");
   if (!name) {
     name = "";
     goto error;
@@ -134,7 +132,7 @@ void setoption(char *str)
   while (isblank(*name))
     name++;
 
-  value = strstr(name, "value");
+  char* value = strstr(name, "value");
   if (value) {
     char *p = value - 1;
     while (isblank(*p))
@@ -161,15 +159,14 @@ error:
 
 static void go(Position *pos, char *str)
 {
-  char *token;
-  bool ponderMode = false;
+	bool ponderMode = false;
 
   process_delayed_settings();
 
-  Limits = (struct LimitsType){ 0 };
+  Limits = (LimitsType){ 0 };
   Limits.startTime = now(); // As early as possible!
 
-  for (token = strtok(str, " \t"); token; token = strtok(NULL, " \t")) {
+  for (char* token = strtok(str, " \t"); token; token = strtok(NULL, " \t")) {
     if (strcmp(token, "searchmoves") == 0)
       while ((token = strtok(NULL, " \t")))
         Limits.searchmoves[Limits.numSearchmoves++] = uci_to_move(pos, token);
@@ -215,11 +212,10 @@ static void go(Position *pos, char *str)
 // executed the function returns immediately. In addition to the UCI ones,
 // also some additional debug commands are supported.
 
-void uci_loop(int argc, char **argv)
+void uci_loop(const int argc, char **argv)
 {
   Position pos;
   char fen[strlen(StartFEN) + 1];
-  char str_buf[64];
   char *token;
 
   LOCK_INIT(Threads.lock);
@@ -338,13 +334,13 @@ void uci_loop(int argc, char **argv)
 
     // Additional custom non-UCI commands, useful for debugging
     else if (strcmp(token, "bench") == 0)     benchmark(&pos, str);
-    else if (strcmp(token, "d") == 0)         print_pos(&pos);
     else if (strcmp(token, "perft") == 0) {
-      sprintf(str_buf, "%d %d %d current perft", option_value(OPT_HASH),
-                    option_value(OPT_THREADS), atoi(str));
+	    char str_buf[64];
+	    sprintf(str_buf, "%d %d %d current perft", option_value(OPT_HASH),
+	            option_value(OPT_THREADS), atoi(str));
       benchmark(&pos, str_buf);
     }
-    else if (strcmp(token, "compiler") == 0)  print_compiler_info();
+    else if (strcmp(token, "compiler") == 0) print_compiler_info(); 
     else if (strcmp(token, "export_net") == 0) nnue_export_net();
     else if (strncmp(token, "#", 1)) {
       printf("Unknown command: %s %s\n", token, str);
@@ -370,7 +366,7 @@ void uci_loop(int argc, char **argv)
 // mate <y>  Mate in y moves, not plies. If the engine is getting mated
 //           use negative values for y.
 
-char *uci_value(char *str, Value v)
+char *uci_value(char *str, const Value v)
 {
   if (abs(v) < VALUE_MATE_IN_MAX_PLY)
     sprintf(str, "cp %d", v * 100 / PawnValueEg);
@@ -385,7 +381,7 @@ char *uci_value(char *str, Value v)
 // uci_square() converts a Square to a string in algebraic notation
 // (g1, a7, etc.)
 
-char *uci_square(char *str, Square s)
+char *uci_square(char *str, const Square s)
 {
   str[0] = 'a' + file_of(s);
   str[1] = '1' + rank_of(s);
@@ -400,10 +396,10 @@ char *uci_square(char *str, Square s)
 // notation in normal chess mode, and in e1h1 notation in chess960 mode.
 // Internally all castling moves are always encoded as 'king captures rook'.
 
-char *uci_move(char *str, Move m, int chess960)
+char *uci_move(char *str, const Move m, const int chess960)
 {
   char buf1[8], buf2[8];
-  Square from = from_sq(m);
+  const Square from = from_sq(m);
   Square to = to_sq(m);
 
   if (m == 0)
@@ -435,7 +431,7 @@ Move uci_to_move(const Position *pos, char *str)
     str[4] = tolower(str[4]);
 
   ExtMove list[MAX_MOVES];
-  ExtMove *last = generate_legal(pos, list);
+  const ExtMove *last = generate_legal(pos, list);
 
   char buf[16];
 

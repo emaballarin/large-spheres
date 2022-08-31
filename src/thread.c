@@ -21,7 +21,6 @@
 #include <assert.h>
 
 #include "material.h"
-#include "movegen.h"
 #include "movepick.h"
 #include "numa.h"
 #include "pawns.h"
@@ -29,8 +28,6 @@
 #include "settings.h"
 #include "thread.h"
 #include "tt.h"
-#include "uci.h"
-#include "tbprobe.h"
 
 static void thread_idle_loop(Position *pos);
 
@@ -102,6 +99,7 @@ static THREAD_FUNC thread_init(void *arg)
     pos->counterMoves = numa_alloc(sizeof(CounterMoveStat));
     pos->mainHistory = numa_alloc(sizeof(ButterflyHistory));
     pos->captureHistory = numa_alloc(sizeof(CapturePieceToHistory));
+    pos->lowPlyHistory = numa_alloc(sizeof(LowPlyHistory));
     pos->rootMoves = numa_alloc(sizeof(RootMoves));
     pos->stackAllocation = numa_alloc(63 + (MAX_PLY + 110) * sizeof(Stack));
     pos->moveList = numa_alloc(10000 * sizeof(ExtMove));
@@ -114,6 +112,7 @@ static THREAD_FUNC thread_init(void *arg)
     pos->counterMoves = calloc(sizeof(CounterMoveStat), 1);
     pos->mainHistory = calloc(sizeof(ButterflyHistory), 1);
     pos->captureHistory = calloc(sizeof(CapturePieceToHistory), 1);
+    pos->lowPlyHistory = calloc(sizeof(LowPlyHistory), 1);
     pos->rootMoves = calloc(sizeof(RootMoves), 1);
     pos->stackAllocation = calloc(63 + (MAX_PLY + 110) * sizeof(Stack), 1);
     pos->moveList = calloc(10000 * sizeof(ExtMove), 1);
@@ -208,6 +207,7 @@ static void thread_destroy(Position *pos)
     numa_free(pos->counterMoves, sizeof(CounterMoveStat));
     numa_free(pos->mainHistory, sizeof(ButterflyHistory));
     numa_free(pos->captureHistory, sizeof(CapturePieceToHistory));
+    numa_free(pos->lowPlyHistory, sizeof(LowPlyHistory));
     numa_free(pos->rootMoves, sizeof(RootMoves));
     numa_free(pos->stackAllocation, 63 + (MAX_PLY + 110) * sizeof(Stack));
     numa_free(pos->moveList, 10000 * sizeof(ExtMove));
@@ -220,6 +220,7 @@ static void thread_destroy(Position *pos)
     free(pos->counterMoves);
     free(pos->mainHistory);
     free(pos->captureHistory);
+    free(pos->lowPlyHistory);
     free(pos->rootMoves);
     free(pos->stackAllocation);
     free(pos->moveList);
@@ -275,7 +276,7 @@ void thread_wait(Position *pos, atomic_bool *condition)
 }
 
 
-void thread_wake_up(Position *pos, int action)
+void thread_wake_up(Position *pos, const int action)
 {
 #ifndef _WIN32
 
@@ -325,16 +326,17 @@ static void thread_idle_loop(Position *pos)
 
       break;
 
-    } else if (pos->action == THREAD_TT_CLEAR) {
+    }
+    if (pos->action == THREAD_TT_CLEAR) {
 
-      tt_clear_worker(pos->threadIdx);
+	    tt_clear_worker(pos->threadIdx);
 
     } else {
 
-      if (pos->threadIdx == 0)
-        mainthread_search();
-      else
-        thread_search(pos);
+	    if (pos->threadIdx == 0)
+		    mainthread_search();
+	    else
+		    thread_search(pos);
 
     }
 
@@ -408,7 +410,7 @@ void threads_exit(void)
 // threads_set_number() creates/destroys threads to match the requested
 // number.
 
-void threads_set_number(int num)
+void threads_set_number(const int num)
 {
   while (Threads.numThreads < num)
     thread_create(Threads.numThreads++);
