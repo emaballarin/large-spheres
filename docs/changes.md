@@ -29,13 +29,12 @@ for more info on these warnings...see:
 https://www.jetbrains.com/help/resharper/Reference__Code_Inspections_CPP.html
 
 
-all msys64 compile warnings have been resolved:
-Fat Titz
+Fat Titz- msys64 compile warnings:
 ![alt tag](https://raw.githubusercontent.com/FireFather/BigBallz/master/bitmaps/fattitz_compile_warnings_1.png)
 ![alt tag](https://raw.githubusercontent.com/FireFather/BigBallz/master/bitmaps/fattitz_compile_warnings_2.png)
 
 
-Big Ballz
+Big Ballz- all warnings have been resolved:
 ![alt tag](https://raw.githubusercontent.com/FireFather/BigBallz/master/bitmaps/bigballz_clean_compile.png)
 
 pre-release test (ulra-fast - avg game length = 14.5 secs):
