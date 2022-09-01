@@ -4,7 +4,7 @@
 
 This is a **FREE** UCI-compatibile chess engine. It is a fork of [FatTitz](https://github.com/Sopel97/FatTitz) which is a fork of [cfish](https://github.com/syzygy1/Cfish).
 
-Many thanks to Tomass Sobczyk (Sopel) for inspiration on creating this fork of FatTitz.
+Many thanks to Tomass Sobczyk (Sopel97) for inspiration on creating this fork of FatTitz.
 
 This engine uses a HalfKAv2-2048x2-64-64-1 evaluation network, which contains whopping **4 times** the knowledge of Stockfish 14. It was trained partially on Lc0 data, which gives it a unique positional style, while still preserving the tactical sharpness of Stockfish. The network was trained using a modification of the [state-of-the-art NNUE trainer](https://github.com/glinscott/nnue-pytorch), utilizing publicly available datasets [1](https://drive.google.com/file/d/1VlhnHL8f-20AXhGkILujnNXHwy9T-MQw/view?usp=sharing), [2](https://drive.google.com/file/d/1seGNOqcVdvK_vPNq98j-zV3XPE5zWAeq/view?usp=sharing), [3](https://drive.google.com/file/d/1RFkQES3DpsiJqsOtUshENtzPfFgUmEff/view?usp=sharing)
 
