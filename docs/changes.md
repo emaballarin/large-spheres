@@ -11,19 +11,19 @@
 - anarchy mode removed
 - persistent transposition table removed
 
-- Clang Diagnostics, Clang-tidy Checks, Clang Static Analyzer changes:
-	- 208 Local variable '' can be made const
-	- 101 Parameter '' can be made const
-	- 21 Parameter '' can be made pointer to const	
-	- 21 Declaration and assignment can be joined
-    - 13 Redundant cast	
-	- 8 Parameter has different names: 'key' and 'k'
-    - 8 Redundant elaborated type specifier
-	- 7 Variable '' can be moved to inner scope
-	- 3 Redundant 'else' keyword	
-	- 2 Variable '' can be moved to for-init-statement
-    - 2 Parameter 'opt' is never used	
-	- 1 Redundant elaborated type specifier
+- Clang Diagnostics, Clang-tidy Checks, Clang Static Analyzer:
+	- 208 changes -> Local variable '' can be made const
+	- 101 changes -> Parameter '' can be made const
+	- 21 changes -> Parameter '' can be made pointer to const	
+	- 21 changes -> Declaration and assignment can be joined
+    	- 13 changes -> Eliminate Redundant cast	
+	- 8 changes -> Parameter has different names: 'key' and 'k'
+    	- 8 changes -> Redundant elaborated type specifier
+	- 7 changes -> Variable '' can be moved to inner scope
+	- 3 changes -> Redundant 'else' keyword	
+	- 2 changes -> Variable '' can be moved to for-init-statement
+    	- 2 changes -> Parameter 'opt' is never used	
+	- 1 change -> Redundant elaborated type specifier
 	
 for more info on these warnings...see:
 https://www.jetbrains.com/help/resharper/Reference__Code_Inspections_CPP.html
