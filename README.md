@@ -10,9 +10,10 @@ This engine uses a HalfKAv2-2048x2-64-64-1 evaluation network, which contains wh
 
 
 ## Changes/Improvements to Fat Titz
-- details [changes.md](docs/changes.md)
 - nuue net embedded
 - search changes
+- clang-tidy checks, clang diagnostics, etc.
+- resharper c++ optimizations
 - const added to vars & parameters
 - vars moved to innerscope
 - compile warnings resolved
@@ -22,8 +23,9 @@ This engine uses a HalfKAv2-2048x2-64-64-1 evaluation network, which contains wh
 - unused includes removed
 - anarchy mode removed
 - persistent transposition table removed
+- for details, see: [changes.md](docs/changes.md)
 
-Due to international interest in this project, Fat Titz includes this readme translated to Chinese & Hindi...
+Due to international interest in this project, Fat Titz included a readme translated to Chinese & Hindi...
 so to help that effort, I've added documents in Japanese & Russian (and will add more later as time permits).
   
 ## Compiling Big Ballz
