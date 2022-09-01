@@ -19,10 +19,10 @@ This engine uses a HalfKAv2-2048x2-64-64-1 evaluation network, which contains wh
 - compile warnings resolved
 - lowplyhistory & other search changes added
 - compile info printed at startup
-- obfuscated node count/nps fixed
-- unused includes removed
-- anarchy mode removed
+- obfuscated node count/nps corrected
+- anarchy (forced enpassant) mode removed
 - persistent transposition table removed
+- unused includes removed
 - for details, see: [changes.md](docs/changes.md)
 
 Due to international interest in this project, Fat Titz included a readme translated to Chinese & Hindi...
