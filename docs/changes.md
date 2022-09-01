@@ -16,13 +16,13 @@
 	- 101 changes -> Parameter '' can be made const
 	- 21 changes -> Parameter '' can be made pointer to const	
 	- 21 changes -> Declaration and assignment can be joined
-    	- 13 changes -> Eliminate Redundant cast	
+	- 13 changes -> Eliminate Redundant cast	
 	- 8 changes -> Parameter has different names: 'key' and 'k'
-    	- 8 changes -> Redundant elaborated type specifier
+	- 8 changes -> Redundant elaborated type specifier
 	- 7 changes -> Variable '' can be moved to inner scope
 	- 3 changes -> Redundant 'else' keyword	
 	- 2 changes -> Variable '' can be moved to for-init-statement
-    	- 2 changes -> Parameter 'opt' is never used	
+	- 2 changes -> Parameter 'opt' is never used	
 	- 1 change -> Redundant elaborated type specifier
 	
 for more info on these warnings...see:
