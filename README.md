@@ -13,7 +13,7 @@ This engine uses a HalfKAv2-2048x2-64-64-1 evaluation network, which contains wh
 - nuue net embedded
 - search changes
 - clang-tidy checks, clang diagnostics, etc.
-- resharper c++ optimizations
+- resharper c optimizations
 - const added to vars & parameters
 - vars moved to innerscope
 - compile warnings resolved
