@@ -38,27 +38,42 @@
 #define LOCK_DESTROY(x) pthread_mutex_destroy(&(x))
 #define LOCK(x) pthread_mutex_lock(&(x))
 #define UNLOCK(x) pthread_mutex_unlock(&(x))
+enum
+{
+  THREAD_SLEEP,
+  THREAD_SEARCH,
+  THREAD_TT_CLEAR,
+  THREAD_EXIT,
+  THREAD_RESUME
+};
 #else
 #define LOCK_T HANDLE
-#define LOCK_INIT(x) do { (x) = CreateMutex(NULL, FALSE, NULL); } while (0)
+#define LOCK_INIT(x)                      \
+  do                                      \
+  {                                       \
+    (x) = CreateMutex(NULL, FALSE, NULL); \
+  } while (0)
 #define LOCK_DESTROY(x) CloseHandle(x)
 #define LOCK(x) WaitForSingleObject(x, INFINITE)
 #define UNLOCK(x) ReleaseMutex(x)
-#endif
-
-enum {
-  THREAD_SLEEP, THREAD_SEARCH, THREAD_TT_CLEAR, THREAD_EXIT, THREAD_RESUME
+enum
+{
+  THREAD_SLEEP,
+  THREAD_SEARCH,
+  THREAD_TT_CLEAR,
+  THREAD_EXIT
 };
+#endif
 
 void thread_search(Position *pos);
 void thread_wake_up(Position *pos, int action);
 void thread_wait_until_sleeping(Position *pos);
 void thread_wait(Position *pos, atomic_bool *condition);
 
-
 // MainThread struct seems to exist mostly for easy move.
 
-struct MainThread {
+struct MainThread
+{
   double previousTimeReduction;
   Value previousScore;
   Value previousAverageScore;
@@ -71,12 +86,12 @@ extern MainThread mainThread;
 
 void mainthread_search(void);
 
-
 // ThreadPool struct handles all the threads-related stuff like init,
 // starting, parking and, most importantly, launching a thread. All the
 // access to threads data is done through this class.
 
-struct ThreadPool {
+struct ThreadPool
+{
   Position *pos[MAX_THREADS];
   int numThreads;
 #ifndef _WIN32
