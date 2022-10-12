@@ -1,0 +1,52 @@
+benchmark.o: benchmark.c evaluate.h types.h config.h misc.h position.h \
+ bitboard.h magic-plain.h search.h settings.h numa.h thread.h tt.h uci.h
+bitbase.o: bitbase.c bitboard.h types.h config.h magic-plain.h
+bitboard.o: bitboard.c bitboard.h types.h config.h magic-plain.h misc.h \
+ magic-plain.c
+endgame.o: endgame.c bitboard.h types.h config.h magic-plain.h endgame.h \
+ movegen.h position.h misc.h
+evaluate.o: evaluate.c bitboard.h types.h config.h magic-plain.h \
+ evaluate.h material.h endgame.h misc.h position.h pawns.h timeman.h \
+ search.h thread.h
+main.o: main.c bitboard.h types.h config.h magic-plain.h endgame.h \
+ pawns.h misc.h position.h polybook.h search.h thread.h tt.h uci.h \
+ tbprobe.h movegen.h nnue.h
+material.o: material.c material.h endgame.h types.h config.h misc.h \
+ position.h bitboard.h magic-plain.h
+misc.o: misc.c misc.h types.h config.h thread.h
+movegen.o: movegen.c movegen.h types.h config.h position.h bitboard.h \
+ magic-plain.h misc.h
+movepick.o: movepick.c movepick.h movegen.h types.h config.h position.h \
+ bitboard.h magic-plain.h misc.h search.h thread.h
+pawns.o: pawns.c bitboard.h types.h config.h magic-plain.h pawns.h misc.h \
+ position.h thread.h
+position.o: position.c bitboard.h types.h config.h magic-plain.h \
+ material.h endgame.h misc.h position.h movegen.h pawns.h tbprobe.h \
+ thread.h tt.h uci.h
+psqt.o: psqt.c types.h config.h
+search.o: search.c evaluate.h types.h config.h misc.h movegen.h \
+ movepick.h position.h bitboard.h magic-plain.h search.h polybook.h \
+ settings.h numa.h tbprobe.h timeman.h thread.h tt.h uci.h
+tbprobe.o: tbprobe.c bitboard.h types.h config.h magic-plain.h movegen.h \
+ position.h misc.h search.h tbprobe.h thread.h uci.h
+thread.o: thread.c material.h endgame.h types.h config.h misc.h \
+ position.h bitboard.h magic-plain.h movepick.h movegen.h search.h numa.h \
+ pawns.h settings.h thread.h tt.h
+timeman.o: timeman.c search.h misc.h types.h config.h timeman.h thread.h \
+ uci.h
+tt.o: tt.c bitboard.h types.h config.h magic-plain.h settings.h numa.h \
+ thread.h tt.h misc.h
+uci.o: uci.c evaluate.h types.h config.h misc.h movegen.h position.h \
+ bitboard.h magic-plain.h search.h settings.h numa.h thread.h timeman.h \
+ uci.h nnue.h
+ucioption.o: ucioption.c evaluate.h types.h config.h misc.h polybook.h \
+ bitboard.h magic-plain.h position.h search.h settings.h numa.h tbprobe.h \
+ movegen.h thread.h uci.h
+numa.o: numa.c
+settings.o: settings.c numa.h types.h config.h search.h misc.h settings.h \
+ thread.h tt.h
+polybook.o: polybook.c misc.h types.h config.h movegen.h polybook.h \
+ bitboard.h magic-plain.h position.h thread.h uci.h
+nnue.o: nnue.c evaluate.h types.h config.h misc.h nnue.h position.h \
+ bitboard.h magic-plain.h settings.h numa.h uci.h pragma.h nnue-regular.c \
+ nnue-sparse.c

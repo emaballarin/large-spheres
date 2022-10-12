@@ -3,12 +3,20 @@
 
 #include "types.h"
 
-#define DefaultEvalFile "big_ballz.nnue"
+#define DefaultEvalFile "large_spheres.nnue"
 
-enum { Tempo = 28 };
+enum
+{
+    Tempo = 28
+};
 
 #ifdef NNUE
-enum { EVAL_HYBRID, EVAL_PURE, EVAL_CLASSICAL };
+enum
+{
+    EVAL_HYBRID,
+    EVAL_PURE,
+    EVAL_CLASSICAL
+};
 #ifndef NNUE_PURE
 extern int useNNUE;
 #else

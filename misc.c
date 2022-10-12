@@ -52,15 +52,17 @@ static char date[] = __DATE__;
 
 void print_engine_info(bool to_uci)
 {
-	printf("Big Ballz %s", Version);
+  printf("Large Spheres %s", Version);
 
-  if (strlen(Version) == 0) {
-	  char my_date[64];
-	  int month;
+  if (strlen(Version) == 0)
+  {
+    char my_date[64];
+    int month;
 
     strcpy(my_date, date);
     const char *str = strtok(my_date, " "); // month
-    for (month = 1; strncmp(str, &months[3 * month - 3], 3) != 0; month++);
+    for (month = 1; strncmp(str, &months[3 * month - 3], 3) != 0; month++)
+      ;
     str = strtok(NULL, " "); // day
     const int day = atoi(str);
     str = strtok(NULL, " "); // year
@@ -71,27 +73,28 @@ void print_engine_info(bool to_uci)
 
   printf(
 #ifdef IS_64BIT
-         " 64"
+      " 64"
 #endif
 #ifdef USE_AVX512
-         " AVX512"
+      " AVX512"
 #elif USE_PEXT
-         " BMI2"
+      " BMI2"
 #elif USE_AVX2
-         " AVX2"
+      " AVX2"
 #elif USE_NEON
-         " NEON"
+      " NEON"
 #elif USE_POPCNT
-         " POPCNT"
+      " POPCNT"
 #endif
 #ifdef USE_VNNI
-         "-VNNI"
+      "-VNNI"
 #endif
 #ifdef NUMA
-         " NUMA"
+      " NUMA"
 #endif
-         "%s\n", to_uci ? "\nid author The Stockfish developers"
-                      : " by Tomasz Sobczyk, Syzygy, and The Stockfish developers");
+      "%s\n",
+      to_uci ? "\nid author The Stockfish developers"
+             : " by Tomasz Sobczyk, Syzygy, and The Stockfish developers");
   fflush(stdout);
 }
 
@@ -109,25 +112,23 @@ void print_compiler_info(void)
          "clang " make_version_string(__clang_major__, __clang_minor__,
                                       __clang_patchlevel__)
 #elif __INTEL_COMPILER
-         "Intel compiler (version " stringify(__INTEL_COMPILER)
-         " update " stringify(__INTEL_COMPILER_UPDATE) ")"
+         "Intel compiler (version " stringify(__INTEL_COMPILER) " update " stringify(__INTEL_COMPILER_UPDATE) ")"
 #elif _MSC_VER
          "MSVC (version " stringify(_MSC_FULL_VER) "." stringify(_MSC_BUILD) ")"
 #elif __GNUC__
-         "gcc (GNUC) "
-         make_version_string(__GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__)
+         "gcc (GNUC) " make_version_string(__GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__)
 #else
          "Unknown compiler (unknown version)"
 #endif
 
 #ifdef __APPLE__
-         " on Apple"
+             " on Apple"
 #elif __CYGWIN__
-         " on Cygwin"
+                                                                                                              " on Cygwin"
 #elif __MINGW64__
-         " on MinGW64"
+                                                                             " on MinGW64"
 #elif __MINGW32__
-         " on MinGW32"
+             " on MinGW32"
 #elif __ANDROID__
          " on Android"
 #elif __linux__
@@ -140,58 +141,58 @@ void print_compiler_info(void)
          " on unknown system"
 #endif
 
-         "\nCompilation settings include: "
+             "\nCompilation settings include: "
 #ifdef IS_64BIT
-         "64bit"
+             "64bit"
 #else
-         "32bit"
+                                                                                                              "32bit"
 #endif
 #ifdef USE_VNNI
-         " VNNI"
+             " VNNI"
 #endif
 #ifdef USE_AVX512
-         " AVX512"
+             " AVX512"
 #endif
 #ifdef USE_PEXT
-         " BMI2"
+             " BMI2"
 #endif
 #ifdef USE_AVX2
-         " AVX2"
+             " AVX2"
 #endif
 #ifdef USE_AVX
-         " AVX"
+             " AVX"
 #endif
 #ifdef USE_SSE41
-         " SSE41"
+             " SSE41"
 #endif
 #ifdef USE_SSSE3
-         " SSSE3"
+             " SSSE3"
 #endif
 #ifdef USE_SSE2
-         " SSE2"
+             " SSE2"
 #endif
 #ifdef USE_POPCNT
-         " POPCNT"
+             " POPCNT"
 #endif
 #ifdef USE_MMX
-         " MMX"
+             " MMX"
 #endif
 #ifdef USE_NEON
-         " NEON"
+             " NEON"
 #endif
 #ifdef NNUE_SPARSE
-         " sparse"
+             " sparse"
 #endif
 #ifndef NDEBUG
-         " DEBUG"
+             " DEBUG"
 #endif
-         "\n__VERSION__ macro expands to: "
+             "\n__VERSION__ macro expands to: "
 #ifdef __VERSION__
          __VERSION__
 #else
-         "(undefined macro)"
+                                                                                                              "(undefined macro)"
 #endif
-         "\n\n");
+             "\n\n");
 }
 
 // xorshift64star Pseudo-Random Number Generator
@@ -228,9 +229,9 @@ uint64_t prng_rand(PRNG *rng)
 
 uint64_t prng_sparse_rand(PRNG *rng)
 {
-	const uint64_t r1 = prng_rand(rng);
-	const uint64_t r2 = prng_rand(rng);
-	const uint64_t r3 = prng_rand(rng);
+  const uint64_t r1 = prng_rand(rng);
+  const uint64_t r2 = prng_rand(rng);
+  const uint64_t r3 = prng_rand(rng);
   return r1 & r2 & r3;
 }
 
@@ -241,25 +242,27 @@ ssize_t getline(char **lineptr, size_t *n, FILE *stream)
 
   int c = 0;
   size_t i = 0;
-  while ((c = getc(stream)) != EOF) {
+  while ((c = getc(stream)) != EOF)
+  {
     (*lineptr)[i++] = c;
     if (i == *n)
       *lineptr = realloc(*lineptr, *n += 100);
-    if (c == '\n') break;
+    if (c == '\n')
+      break;
   }
   (*lineptr)[i] = 0;
   return i;
 }
 
 #ifdef _WIN32
-typedef SIZE_T (WINAPI *GLPM)(void);
+typedef SIZE_T(WINAPI *GLPM)(void);
 size_t largePageMinimum;
 
 bool large_pages_supported(void)
 {
-	const GLPM impGetLargePageMinimum =
-    (GLPM)(void (*)(void))GetProcAddress(GetModuleHandle("kernel32.dll"),
-        "GetLargePageMinimum");
+  const GLPM impGetLargePageMinimum =
+      (GLPM)(void (*)(void))GetProcAddress(GetModuleHandle("kernel32.dll"),
+                                           "GetLargePageMinimum");
   if (!impGetLargePageMinimum)
     return 0;
 
@@ -290,26 +293,31 @@ void __cdecl _lock(int locknum);
 void __cdecl _unlock(int locknum);
 #define _STREAM_LOCKS 16
 #define _IOLOCKED 0x8000
-typedef struct {
+typedef struct
+{
   FILE f;
   CRITICAL_SECTION lock;
 } _FILEX;
 
 void flockfile(FILE *F)
 {
-  if ((F >= (&__iob_func()[0])) && (F <= (&__iob_func()[_IOB_ENTRIES-1]))) {
+  if ((F >= (&__iob_func()[0])) && (F <= (&__iob_func()[_IOB_ENTRIES - 1])))
+  {
     _lock(_STREAM_LOCKS + (int)(F - (&__iob_func()[0])));
     F->_flag |= _IOLOCKED;
-  } else
+  }
+  else
     EnterCriticalSection(&(((_FILEX *)F)->lock));
 }
 
 void funlockfile(FILE *F)
 {
-  if ((F >= (&__iob_func()[0])) && (F <= (&__iob_func()[_IOB_ENTRIES-1]))) {
+  if ((F >= (&__iob_func()[0])) && (F <= (&__iob_func()[_IOB_ENTRIES - 1])))
+  {
     F->_flag &= ~_IOLOCKED;
     _unlock(_STREAM_LOCKS + (int)(F - (&__iob_func()[0])));
-  } else
+  }
+  else
     LeaveCriticalSection(&(((_FILEX *)F)->lock));
 }
 #endif
@@ -321,7 +329,7 @@ FD open_file(const char *name)
 
 #else
   return CreateFile(name, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
-      FILE_FLAG_RANDOM_ACCESS, NULL);
+                    FILE_FLAG_RANDOM_ACCESS, NULL);
 
 #endif
 }
@@ -375,7 +383,8 @@ const void *map_file(FD fd, map_t *map)
 
 void unmap_file(const void *data, map_t map)
 {
-  if (!data) return;
+  if (!data)
+    return;
 
 #ifndef _WIN32
   munmap((void *)data, map);
@@ -392,12 +401,14 @@ void *allocate_memory(size_t size, bool lp, alloc_t *alloc)
   void *ptr = NULL;
 
 #ifdef _WIN32
-  if (lp) {
-	  const size_t pageSize = largePageMinimum;
-	  const size_t lpSize = (size + pageSize - 1) & ~(pageSize - 1);
+  if (lp)
+  {
+    const size_t pageSize = largePageMinimum;
+    const size_t lpSize = (size + pageSize - 1) & ~(pageSize - 1);
     ptr = VirtualAlloc(NULL, lpSize,
-        MEM_COMMIT | MEM_RESERVE | MEM_LARGE_PAGES, PAGE_READWRITE);
-  } else
+                       MEM_COMMIT | MEM_RESERVE | MEM_LARGE_PAGES, PAGE_READWRITE);
+  }
+  else
     ptr = VirtualAlloc(NULL, size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
   alloc->ptr = ptr;
   return ptr;
@@ -409,14 +420,14 @@ void *allocate_memory(size_t size, bool lp, alloc_t *alloc)
 #if defined(__APPLE__) && defined(VM_FLAGS_SUPERPAGE_SIZE_2MB)
   if (lp)
     ptr = mmap(NULL, allocSize, PROT_READ | PROT_WRITE,
-        MAP_PRIVATE | MAP_ANONYMOUS, VM_FLAGS_SUPERPAGE_SIZE_2MB, 0);
+               MAP_PRIVATE | MAP_ANONYMOUS, VM_FLAGS_SUPERPAGE_SIZE_2MB, 0);
   else
     ptr = mmap(NULL, allocSize, PROT_READ | PROT_WRITE,
-        MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+               MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 
 #else
   ptr = mmap(NULL, allocSize, PROT_READ | PROT_WRITE,
-      MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+             MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 #if defined(__linux__) && defined(MADV_HUGEPAGE)
   // Advise the kernel to allocate large pages.
   if (lp)
